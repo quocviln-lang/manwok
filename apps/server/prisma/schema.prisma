@@ -1,21 +1,185 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "library"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum SystemRole {
+  SYSTEM_USER
+  SYSTEM_ADMIN
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  fullName  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String
+  fullName   String     @map("full_name")
+  avatar     String?
+  systemRole SystemRole @default(SYSTEM_USER) @map("system_role")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  createdCards     Card[]            @relation("CardCreator")
+  assignedCards    CardAssignee[]
+  comments         Comment[]
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members WorkspaceMember[]
+  boards  Board[]
+
+  @@map("workspaces")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid())
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum BoardVisibility {
+  PRIVATE
+  WORKSPACE
+  PUBLIC
+}
+
+model Board {
+  id          String          @id @default(uuid())
+  workspaceId String          @map("workspace_id")
+  title       String
+  description String?
+  cover       String?
+  visibility  BoardVisibility @default(WORKSPACE)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lists     List[]
+
+  @@map("boards")
+}
+
+model List {
+  id        String   @id @default(uuid())
+  boardId   String   @map("board_id")
+  title     String
+  position  Float
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@map("lists")
+}
+
+model Card {
+  id          String   @id @default(uuid())
+  listId      String   @map("list_id")
+  title       String
+  description String?
+  cover       String?
+  position    Float
+  archived    Boolean  @default(false)
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  list      List           @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy User           @relation("CardCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignees CardAssignee[]
+  comments  Comment[]
+
+  @@map("cards")
+}
+
+model CardAssignee {
+  id        String   @id @default(uuid())
+  cardId    String   @map("card_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
+  @@map("card_assignees")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  cardId    String   @map("card_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+enum NotificationType {
+  CARD_ASSIGNED
+  COMMENT_ADDED
+  SYSTEM_ALERT
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  message   String
+  read      Boolean          @default(false)
+  relatedId String?          @map("related_id") // Optional ID related to the notification (e.g., Card ID)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }

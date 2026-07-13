@@ -1,0 +1,99 @@
+### ==========================================
+### BIẾN MÔI TRƯỜNG (Sửa lại Token và ID)
+### ==========================================
+@baseUrl = http://localhost:5000/api
+@token = YOUR_TOKEN_HERE
+@listId = YOUR_LIST_ID_HERE
+@cardId = YOUR_CARD_ID_HERE
+@commentId = YOUR_COMMENT_ID_HERE
+@userId = YOUR_USER_ID_HERE
+
+### ==========================================
+### 1. TẠO CARD MỚI TRONG LIST
+### ==========================================
+POST {{baseUrl}}/lists/{{listId}}/cards
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Thiết kế giao diện Đăng nhập",
+  "description": "Sử dụng Figma để thiết kế giao diện"
+}
+
+### ==========================================
+### 2. TẠO THÊM CARD ĐỂ TEST KÉO THẢ
+### ==========================================
+POST {{baseUrl}}/lists/{{listId}}/cards
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Tạo cấu trúc Database cho Card"
+}
+
+### ==========================================
+### 3. LẤY CHI TIẾT CARD (Kèm Bình luận và Assignees)
+### ==========================================
+GET {{baseUrl}}/cards/{{cardId}}
+Authorization: Bearer {{token}}
+
+### ==========================================
+### 4. CẬP NHẬT THÔNG TIN CƠ BẢN CỦA CARD
+### ==========================================
+PATCH {{baseUrl}}/cards/{{cardId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Thiết kế giao diện Đăng nhập (Hoàn tất)",
+  "cover": "https://example.com/cover.png"
+}
+
+### ==========================================
+### 5. KÉO THẢ (DI CHUYỂN CARD ĐẾN VỊ TRÍ MỚI / CỘT MỚI)
+### (Thay targetListId bằng ID của cột muốn kéo tới, position là vị trí điểm rơi)
+### ==========================================
+@targetListId = ID_COT_MUON_CHUYEN_DEN
+
+PATCH {{baseUrl}}/cards/{{cardId}}/move
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "listId": "{{targetListId}}",
+  "position": 50000.5
+}
+
+### ==========================================
+### 6. GÁN THÀNH VIÊN VÀO CARD (Assign)
+### ==========================================
+POST {{baseUrl}}/cards/{{cardId}}/assignees
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}"
+}
+
+### ==========================================
+### 7. VIẾT BÌNH LUẬN VÀO CARD
+### ==========================================
+POST {{baseUrl}}/cards/{{cardId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "content": "Giao diện này nhìn rất đẹp, tôi đã kiểm tra kỹ!"
+}
+
+### ==========================================
+### 8. XÓA BÌNH LUẬN
+### ==========================================
+DELETE {{baseUrl}}/comments/{{commentId}}
+Authorization: Bearer {{token}}
+
+### ==========================================
+### 9. XÓA CARD (ARCHIVE)
+### ==========================================
+DELETE {{baseUrl}}/cards/{{cardId}}
+Authorization: Bearer {{token}}

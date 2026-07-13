@@ -1,0 +1,71 @@
+### ==========================================
+### BIẾN MÔI TRƯỜNG (Sửa lại Token và ID sau khi tạo)
+### ==========================================
+@baseUrl = http://localhost:5000/api
+@token = YOUR_TOKEN_HERE
+@workspaceId = YOUR_WORKSPACE_ID_HERE
+@boardId = YOUR_BOARD_ID_HERE
+@listId = YOUR_LIST_ID_HERE
+
+### ==========================================
+### 1. TẠO BOARD
+### ==========================================
+POST {{baseUrl}}/workspaces/{{workspaceId}}/boards
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Dự án Kanban Alpha",
+  "description": "Bảng chính cho team"
+}
+
+### ==========================================
+### 2. LẤY DANH SÁCH BOARD CỦA WORKSPACE
+### ==========================================
+GET {{baseUrl}}/workspaces/{{workspaceId}}/boards
+Authorization: Bearer {{token}}
+
+### ==========================================
+### 3. TẠO LIST (CỘT) MỚI
+### ==========================================
+POST {{baseUrl}}/boards/{{boardId}}/lists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "To Do"
+}
+
+### ==========================================
+### 4. TẠO LIST (CỘT) THỨ HAI
+### ==========================================
+POST {{baseUrl}}/boards/{{boardId}}/lists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "In Progress"
+}
+
+### ==========================================
+### 5. LẤY CHI TIẾT BOARD (Sẽ kèm danh sách Cột bên trong)
+### ==========================================
+GET {{baseUrl}}/boards/{{boardId}}
+Authorization: Bearer {{token}}
+
+### ==========================================
+### 6. ĐỔI TÊN CỘT
+### ==========================================
+PATCH {{baseUrl}}/lists/{{listId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "To Do (Updated)"
+}
+
+### ==========================================
+### 7. XÓA CỘT (ARCHIVE)
+### ==========================================
+DELETE {{baseUrl}}/lists/{{listId}}
+Authorization: Bearer {{token}}
