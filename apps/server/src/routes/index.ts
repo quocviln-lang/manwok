@@ -5,6 +5,7 @@ import boardRoutes from "./board.routes.js";
 import listRoutes from "./list.routes.js";
 import cardRoutes from "./card.routes.js";
 import commentRoutes from "./comment.routes.js";
+import uploadRoutes from "./upload.routes.js";
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.use("/cards", cardRoutes);
 // Comment routes
 router.use("/cards/:cardId/comments", commentRoutes);
 router.use("/comments", commentRoutes);
+
+// Upload routes
+router.use("/upload", uploadRoutes);
 
 export default router;

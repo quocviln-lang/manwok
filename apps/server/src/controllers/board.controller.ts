@@ -83,6 +83,12 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
         lists: {
           where: { archived: false },
           orderBy: { position: "asc" },
+          include: {
+            cards: {
+              where: { archived: false },
+              orderBy: { position: "asc" },
+            }
+          }
         },
       },
     });

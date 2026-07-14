@@ -121,3 +121,41 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<any> => {
     return sendResponse(res, 500, false, error.message || "Server Error");
   }
 };
+
+const updateProfileSchema = z.object({
+  fullName: z.string().min(2).optional(),
+  avatar: z.string().url().optional(),
+});
+
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    if (!req.user) {
+      return sendResponse(res, 401, false, "Not authenticated");
+    }
+
+    const parsedData = updateProfileSchema.safeParse(req.body);
+    if (!parsedData.success) {
+      return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
+    }
+
+    const dataToUpdate: { fullName?: string; avatar?: string } = {};
+    if (parsedData.data.fullName !== undefined) dataToUpdate.fullName = parsedData.data.fullName;
+    if (parsedData.data.avatar !== undefined) dataToUpdate.avatar = parsedData.data.avatar;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatar: true,
+        systemRole: true,
+      },
+    });
+
+    return sendResponse(res, 200, true, "Profile updated successfully", { user: updatedUser });
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
