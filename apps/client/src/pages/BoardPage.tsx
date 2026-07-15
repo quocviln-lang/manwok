@@ -6,19 +6,31 @@ import { ChevronLeft, MoreHorizontal, Plus, ImagePlus } from "lucide-react";
 import { apiCall } from "../services/api";
 import ListColumn from "../components/ListColumn";
 import CardDetailModal from "../components/CardDetailModal";
+import BoardSettingsModal from "../components/BoardSettingsModal";
 
 export type CardType = {
   id: string;
   title: string;
   description: string | null;
   cover: string | null;
+  startDate: string | null;
+  dueDate: string | null;
   position: number;
+  isCompleted: boolean;
+  archived: boolean;
+  _count?: {
+    checklists: number;
+    attachments: number;
+    comments: number;
+  };
 };
 
 export type ListType = {
   id: string;
   title: string;
   position: number;
+  color: string | null;
+  archived: boolean;
   cards: CardType[];
 };
 
@@ -28,17 +40,21 @@ type BoardType = {
   color: string;
   cover: string | null;
   workspaceId: string;
+  visibility: "PRIVATE" | "WORKSPACE" | "PUBLIC";
   lists: ListType[];
 };
 
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
   const [board, setBoard] = useState<BoardType | null>(null);
+  const [isMember, setIsMember] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string>("MEMBER");
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchBoard = useCallback(async () => {
@@ -47,6 +63,8 @@ export default function BoardPage() {
       const res = await apiCall(`/boards/${id}`);
       if (res.success) {
         setBoard(res.data.board);
+        setIsMember(res.data.isMember !== false);
+        setCurrentUserRole(res.data.currentUserRole || "MEMBER");
       }
     } catch (error) {
       console.error(error);
@@ -228,11 +246,57 @@ export default function BoardPage() {
         <div className="flex items-center gap-4">
           <Link 
             to={`/w/${board.workspaceId}`} 
-            className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+            className="flex items-center gap-1 p-1.5 px-3 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
           >
             <ChevronLeft size={20} />
+            <span className="hidden sm:inline">Rời khỏi bảng</span>
           </Link>
-          <h1 className="font-bold text-xl drop-shadow-md">{board.title}</h1>
+          
+          <input 
+            type="text"
+            className="font-bold text-xl bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-white/50 rounded px-2 py-1 text-white placeholder-white/70 w-auto"
+            defaultValue={board.title}
+            onBlur={async (e) => {
+              if (e.target.value !== board.title && e.target.value.trim() && isMember) {
+                await apiCall(`/boards/${board.id}`, { method: "PATCH", body: JSON.stringify({ title: e.target.value }) });
+                fetchBoard();
+              } else {
+                e.target.value = board.title;
+              }
+            }}
+            disabled={!isMember}
+          />
+
+          {isMember && (
+            <select
+              value={board.visibility}
+              onChange={async (e) => {
+                await apiCall(`/boards/${board.id}`, { method: "PATCH", body: JSON.stringify({ visibility: e.target.value }) });
+                fetchBoard();
+              }}
+              className="bg-black/20 text-white text-sm rounded-md px-2 py-1 border-none outline-none cursor-pointer focus:ring-2 focus:ring-white/50"
+            >
+              <option value="PRIVATE" className="text-black">Riêng tư</option>
+              <option value="WORKSPACE" className="text-black">Workspace</option>
+              <option value="PUBLIC" className="text-black">Công khai</option>
+            </select>
+          )}
+
+          {!isMember && (
+            <button 
+              onClick={async () => {
+                try {
+                  const res = await apiCall(`/boards/${board.id}/join-requests`, { method: "POST" });
+                  if (res.success) alert("Đã gửi yêu cầu tham gia!");
+                } catch (e: unknown) {
+                  alert((e as Error).message || "Lỗi gửi yêu cầu");
+                }
+              }}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+            >
+              Yêu cầu tham gia
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <input 
@@ -255,7 +319,11 @@ export default function BoardPage() {
             )}
             <span className="hidden sm:inline">Đổi nền</span>
           </button>
-          <button className="p-1.5 hover:bg-white/20 rounded-lg transition-colors ml-1">
+          <button 
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="p-1.5 hover:bg-white/20 rounded-lg transition-colors ml-1"
+            title="Cài đặt bảng"
+          >
             <MoreHorizontal size={20} />
           </button>
         </div>
@@ -279,6 +347,7 @@ export default function BoardPage() {
                       index={index} 
                       onRefresh={fetchBoard}
                       onCardClick={(cardId) => setSelectedCardId(cardId)}
+                      currentUserRole={currentUserRole}
                     />
                   ))}
                   {provided.placeholder}
@@ -288,15 +357,16 @@ export default function BoardPage() {
           </DragDropContext>
 
           {/* Add List Button */}
-          <div className="shrink-0 w-72">
-            {!isAddingList ? (
-              <button 
-                onClick={() => setIsAddingList(true)}
-                className="w-full flex items-center gap-2 p-3 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-colors backdrop-blur-md font-medium shadow-sm"
-              >
-                <Plus size={20} /> Thêm danh sách khác
-              </button>
-            ) : (
+          {currentUserRole !== "MEMBER" && (
+            <div className="shrink-0 w-72">
+              {!isAddingList ? (
+                <button 
+                  onClick={() => setIsAddingList(true)}
+                  className="w-full flex items-center gap-2 p-3 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-colors backdrop-blur-md font-medium shadow-sm"
+                >
+                  <Plus size={20} /> Thêm danh sách khác
+                </button>
+              ) : (
               <form 
                 onSubmit={handleAddList}
                 className="w-full p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg animate-in fade-in zoom-in-95 duration-200"
@@ -329,14 +399,26 @@ export default function BoardPage() {
                 </div>
               </form>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
       
       {selectedCardId && (
         <CardDetailModal 
           cardId={selectedCardId}
+          currentUserRole={currentUserRole}
           onClose={() => setSelectedCardId(null)}
+          onUpdate={fetchBoard}
+        />
+      )}
+
+      {isSettingsModalOpen && board && (
+        <BoardSettingsModal
+          boardId={board.id}
+          workspaceId={board.workspaceId}
+          currentUserRole={currentUserRole}
+          onClose={() => setIsSettingsModalOpen(false)}
           onUpdate={fetchBoard}
         />
       )}

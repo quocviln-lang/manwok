@@ -4,6 +4,7 @@ import {
   updateList,
   reorderList,
   deleteList,
+  copyList,
 } from "../controllers/list.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -17,6 +18,7 @@ router.use(protect);
 router.post("/", createList);
 router.patch("/:id", updateList);
 router.patch("/:id/reorder", reorderList);
+router.post("/:id/copy", copyList);
 router.delete("/:id", deleteList);
 
 export default router;

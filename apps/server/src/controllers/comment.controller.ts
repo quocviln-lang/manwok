@@ -15,7 +15,10 @@ export const createComment = async (req: AuthRequest, res: Response): Promise<an
 
     const card = await prisma.card.findUnique({
       where: { id: cardId },
-      include: { list: { include: { board: true } } },
+      include: { 
+        list: { include: { board: true } },
+        assignees: true,
+      },
     });
 
     if (!card) return sendResponse(res, 404, false, "Card not found");
@@ -40,6 +43,21 @@ export const createComment = async (req: AuthRequest, res: Response): Promise<an
         userId,
       },
     });
+
+    const userIdsToNotify = new Set(card.assignees.map(a => a.userId));
+    userIdsToNotify.add(card.createdById);
+    userIdsToNotify.delete(userId);
+
+    if (userIdsToNotify.size > 0) {
+      await prisma.notification.createMany({
+        data: Array.from(userIdsToNotify).map(id => ({
+          userId: id,
+          type: "COMMENT_ADDED",
+          message: `Có bình luận mới trong thẻ "${card.title}"`,
+          relatedId: cardId,
+        })),
+      });
+    }
 
     return sendResponse(res, 201, true, "Comment created successfully", { comment });
   } catch (error: any) {

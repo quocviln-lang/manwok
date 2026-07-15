@@ -1,3 +1,64 @@
+export type NotificationType = "CARD_ASSIGNED" | "COMMENT_ADDED" | "SYSTEM_ALERT" | "WORKSPACE_INVITE" | "BOARD_JOIN_REQUEST";
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  message: string;
+  read: boolean;
+  relatedId: string | null;
+  createdAt: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  checklistId: string;
+  content: string;
+  isCompleted: boolean;
+  position: number;
+}
+
+export interface Checklist {
+  id: string;
+  cardId: string;
+  title: string;
+  position: number;
+  items: ChecklistItem[];
+}
+
+export interface Attachment {
+  id: string;
+  cardId: string;
+  url: string;
+  name: string;
+  type: string;
+  createdAt: string;
+}
+
+export interface CommentReaction {
+  id: string;
+  commentId: string;
+  userId: string;
+  emoji: string;
+}
+
+export interface Activity {
+  id: string;
+  boardId: string;
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  entityTitle: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    avatar: string | null;
+  };
+}
+
 const BASE_URL = "http://localhost:5000/api";
 
 export const getAuthToken = () => localStorage.getItem("manwok_token");

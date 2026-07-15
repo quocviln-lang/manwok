@@ -5,6 +5,10 @@ import {
   getBoardById,
   updateBoard,
   deleteBoard,
+  getArchivedItems,
+  getActivities,
+  createJoinRequest,
+  respondToJoinRequest
 } from "../controllers/board.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -24,5 +28,9 @@ router.get("/", getWorkspaceBoards);
 router.get("/:id", getBoardById);
 router.patch("/:id", updateBoard);
 router.delete("/:id", deleteBoard);
+router.get("/:id/archived", getArchivedItems);
+router.get("/:id/activities", getActivities);
+router.post("/:id/join-requests", createJoinRequest);
+router.post("/:id/join-requests/:requestId/respond", respondToJoinRequest);
 
 export default router;

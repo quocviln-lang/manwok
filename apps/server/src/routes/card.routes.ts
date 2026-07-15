@@ -7,6 +7,7 @@ import {
   deleteCard,
   addAssignee,
   removeAssignee,
+  copyCard,
 } from "../controllers/card.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -22,6 +23,7 @@ router.post("/", createCard);
 router.get("/:id", getCardById);
 router.patch("/:id", updateCard);
 router.patch("/:id/move", moveCard);
+router.post("/:id/copy", copyCard);
 router.delete("/:id", deleteCard);
 
 // Assignees

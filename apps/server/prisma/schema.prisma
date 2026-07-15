@@ -32,7 +32,11 @@ model User {
   createdCards     Card[]            @relation("CardCreator")
   assignedCards    CardAssignee[]
   comments         Comment[]
-  notifications    Notification[]
+  notifications      Notification[]
+  commentReactions   CommentReaction[]
+  activities         Activity[]
+  workspaceInvites   WorkspaceInvite[] // Invites sent by this user
+  boardJoinRequests  BoardJoinRequest[]
 
   @@map("users")
 }
@@ -49,6 +53,7 @@ model Workspace {
   owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members WorkspaceMember[]
   boards  Board[]
+  invites WorkspaceInvite[]
 
   @@map("workspaces")
 }
@@ -91,8 +96,10 @@ model Board {
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  lists     List[]
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lists        List[]
+  activities   Activity[]
+  joinRequests BoardJoinRequest[]
 
   @@map("boards")
 }
@@ -101,6 +108,7 @@ model List {
   id        String   @id @default(uuid())
   boardId   String   @map("board_id")
   title     String
+  color     String?
   position  Float
   archived  Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
@@ -120,16 +128,21 @@ model Card {
   description String?
   cover       String?
   position    Float
+  isCompleted Boolean  @default(false)
   archived    Boolean  @default(false)
-  createdById String   @map("created_by_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String    @map("created_by_id")
+  startDate   DateTime? @map("start_date")
+  dueDate     DateTime? @map("due_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  list      List           @relation(fields: [listId], references: [id], onDelete: Cascade)
-  createdBy User           @relation("CardCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  assignees CardAssignee[]
-  comments  Comment[]
+  list        List             @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation("CardCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignees   CardAssignee[]
+  comments    Comment[]
+  checklists  Checklist[]
+  attachments Attachment[]
 
   @@map("cards")
 }
@@ -157,8 +170,9 @@ model Comment {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card      Card              @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
 
   @@map("comments")
 }
@@ -167,6 +181,8 @@ enum NotificationType {
   CARD_ASSIGNED
   COMMENT_ADDED
   SYSTEM_ALERT
+  WORKSPACE_INVITE
+  BOARD_JOIN_REQUEST
 }
 
 model Notification {
@@ -182,4 +198,108 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Checklist {
+  id        String          @id @default(uuid())
+  cardId    String          @map("card_id")
+  title     String
+  position  Float
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  card  Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  items ChecklistItem[]
+
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id          String   @id @default(uuid())
+  checklistId String   @map("checklist_id")
+  content     String
+  isCompleted Boolean  @default(false) @map("is_completed")
+  position    Float
+
+  // Relations
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_items")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  cardId    String   @map("card_id")
+  url       String
+  name      String
+  type      String   // "link" or "file" or "image"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model CommentReaction {
+  id        String   @id @default(uuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+  @@map("comment_reactions")
+}
+
+model Activity {
+  id         String   @id @default(uuid())
+  boardId    String   @map("board_id")
+  userId     String   @map("user_id")
+  action     String   // e.g., CREATE_CARD, MOVE_CARD, ARCHIVE_LIST, RESTORE_LIST
+  entityType String   @map("entity_type") // e.g., CARD, LIST
+  entityId   String   @map("entity_id")
+  entityTitle String? @map("entity_title") // Store title here so we don't need to join if the entity is deleted
+  details    Json?    
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  email       String
+  inviterId   String   @map("inviter_id")
+  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviter   User      @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_invites")
+}
+
+model BoardJoinRequest {
+  id        String   @id @default(uuid())
+  boardId   String   @map("board_id")
+  userId    String   @map("user_id")
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("board_join_requests")
 }

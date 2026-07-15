@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { apiCall } from "../services/api";
 
 import Sidebar from "../components/Sidebar";
+import NotificationMenu from "../components/NotificationMenu";
 
 function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, login } = useAuth();
@@ -143,6 +144,9 @@ function MainLayout() {
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+          
+          <NotificationMenu />
+          
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}

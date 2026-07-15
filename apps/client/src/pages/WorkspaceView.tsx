@@ -22,6 +22,7 @@ type Workspace = {
 export default function WorkspaceView() {
   const { id } = useParams<{ id: string }>();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string>("MEMBER");
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -32,6 +33,7 @@ export default function WorkspaceView() {
       const res = await apiCall(`/workspaces/${id}`);
       if (res.success) {
         setWorkspace(res.data.workspace);
+        setCurrentUserRole(res.data.currentUserRole);
       }
     } catch (error) {
       console.error(error);
@@ -74,9 +76,11 @@ export default function WorkspaceView() {
           <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors">
             <Users size={18} /> Thành viên ({workspace.members.length})
           </button>
-          <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors">
-            <Settings size={18} /> Cài đặt
-          </button>
+          {currentUserRole !== "MEMBER" && (
+            <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors">
+              <Settings size={18} /> Cài đặt
+            </button>
+          )}
         </div>
       </div>
 
@@ -108,14 +112,16 @@ export default function WorkspaceView() {
           </Link>
         ))}
 
-        {/* Create New Board Button */}
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="h-28 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-        >
-          <Plus size={24} className="mb-1" />
-          <span className="font-medium text-sm">Tạo bảng mới</span>
-        </button>
+        {/* Create New Board */}
+        {currentUserRole !== "MEMBER" && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-28 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center text-gray-500 hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all gap-1"
+          >
+            <Plus size={24} />
+            <span className="font-medium">Tạo bảng mới</span>
+          </button>
+        )}
       </div>
 
       <CreateBoardModal 

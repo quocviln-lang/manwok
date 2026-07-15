@@ -108,7 +108,10 @@ export const getWorkspaceById = async (req: AuthRequest, res: Response): Promise
       return sendResponse(res, 404, false, "Workspace not found");
     }
 
-    return sendResponse(res, 200, true, "Workspace fetched successfully", { workspace });
+    return sendResponse(res, 200, true, "Workspace fetched successfully", { 
+      workspace,
+      currentUserRole: membership.role
+    });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
   }
@@ -153,6 +156,259 @@ export const deleteWorkspace = async (req: AuthRequest, res: Response): Promise<
     });
 
     return sendResponse(res, 200, true, "Workspace deleted successfully");
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+export const getWorkspaceMembers = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+
+    const membership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: id, userId } },
+    });
+
+    if (!membership) {
+      return sendResponse(res, 403, false, "You are not a member of this workspace");
+    }
+
+    const members = await prisma.workspaceMember.findMany({
+      where: { workspaceId: id },
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, avatar: true },
+        },
+      },
+    });
+
+    return sendResponse(res, 200, true, "Workspace members fetched successfully", { members });
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+const inviteMemberSchema = z.object({
+  email: z.string().email("Invalid email"),
+});
+
+export const inviteMember = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const inviterId = req.user!.id;
+
+    const parsedData = inviteMemberSchema.safeParse(req.body);
+    if (!parsedData.success) {
+      return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
+    }
+
+    const { email } = parsedData.data;
+
+    const membership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: id, userId: inviterId } },
+    });
+
+    if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
+      return sendResponse(res, 403, false, "You don't have permission to invite members");
+    }
+
+    const userToInvite = await prisma.user.findUnique({ where: { email } });
+    if (!userToInvite) {
+      return sendResponse(res, 404, false, "User with this email not found");
+    }
+    
+    const inviter = await prisma.user.findUnique({ where: { id: inviterId } });
+
+    const existingMember = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: id, userId: userToInvite.id } },
+    });
+
+    if (existingMember) {
+      return sendResponse(res, 400, false, "User is already a member");
+    }
+
+    // Check if invite already exists
+    const existingInvite = await prisma.workspaceInvite.findFirst({
+      where: { workspaceId: id, email, status: "PENDING" }
+    });
+
+    if (existingInvite) {
+      return sendResponse(res, 400, false, "An invite is already pending for this user");
+    }
+
+    const invite = await prisma.workspaceInvite.create({
+      data: {
+        workspaceId: id,
+        email,
+        inviterId,
+      }
+    });
+
+    const workspace = await prisma.workspace.findUnique({ where: { id } });
+
+    await prisma.notification.create({
+      data: {
+        userId: userToInvite.id,
+        type: "WORKSPACE_INVITE",
+        message: `${inviter?.fullName || 'Someone'} invited you to join workspace "${workspace?.name}"`,
+        relatedId: invite.id
+      }
+    });
+
+    return sendResponse(res, 201, true, "Invite sent successfully");
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+const respondInviteSchema = z.object({
+  accept: z.boolean()
+});
+
+export const respondToInvite = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const inviteId = req.params.inviteId as string;
+    const userId = req.user!.id;
+    
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!currentUser) return sendResponse(res, 404, false, "User not found");
+    const userEmail = currentUser.email;
+
+    const parsedData = respondInviteSchema.safeParse(req.body);
+    if (!parsedData.success) {
+      return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
+    }
+
+    const invite = await prisma.workspaceInvite.findUnique({ where: { id: inviteId } });
+    if (!invite) return sendResponse(res, 404, false, "Invite not found");
+    
+    if (invite.email !== userEmail) {
+      return sendResponse(res, 403, false, "This invite is not for you");
+    }
+    
+    if (invite.status !== "PENDING") {
+      return sendResponse(res, 400, false, "Invite has already been processed");
+    }
+
+    if (parsedData.data.accept) {
+      // Add member
+      await prisma.workspaceMember.create({
+        data: {
+          workspaceId: invite.workspaceId,
+          userId,
+          role: "MEMBER"
+        }
+      });
+      await prisma.workspaceInvite.update({
+        where: { id: inviteId },
+        data: { status: "ACCEPTED" }
+      });
+    } else {
+      await prisma.workspaceInvite.update({
+        where: { id: inviteId },
+        data: { status: "DECLINED" }
+      });
+    }
+
+    return sendResponse(res, 200, true, `Invite ${parsedData.data.accept ? 'accepted' : 'declined'}`);
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+const updateRoleSchema = z.object({
+  role: z.enum(["ADMIN", "MEMBER"])
+});
+
+export const updateMemberRole = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const memberId = req.params.memberId as string;
+    const currentUserId = req.user!.id;
+
+    const parsedData = updateRoleSchema.safeParse(req.body);
+    if (!parsedData.success) {
+      return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
+    }
+
+    const { role } = parsedData.data;
+
+    // Verify currentUser membership
+    const currentUserMembership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: id, userId: currentUserId } }
+    });
+
+    if (!currentUserMembership || (currentUserMembership.role !== "OWNER" && currentUserMembership.role !== "ADMIN")) {
+      return sendResponse(res, 403, false, "You do not have permission to change roles");
+    }
+
+    // Get target member
+    const targetMember = await prisma.workspaceMember.findUnique({
+      where: { id: memberId }
+    });
+
+    if (!targetMember || targetMember.workspaceId !== id) {
+      return sendResponse(res, 404, false, "Member not found");
+    }
+
+    if (targetMember.role === "OWNER") {
+      return sendResponse(res, 403, false, "Cannot change role of workspace OWNER");
+    }
+
+    if (currentUserMembership.role === "ADMIN" && role === "ADMIN") {
+      // Admins might be able to make others ADMIN, or maybe not. 
+      // Let's allow ADMIN to promote/demote MEMBER to ADMIN and back.
+    }
+
+    const updatedMember = await prisma.workspaceMember.update({
+      where: { id: memberId },
+      data: { role }
+    });
+
+    return sendResponse(res, 200, true, "Member role updated successfully", { member: updatedMember });
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+export const removeMember = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const memberId = req.params.memberId as string;
+    const currentUserId = req.user!.id;
+
+    // Verify currentUser membership
+    const currentUserMembership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: id, userId: currentUserId } }
+    });
+
+    if (!currentUserMembership || (currentUserMembership.role !== "OWNER" && currentUserMembership.role !== "ADMIN")) {
+      return sendResponse(res, 403, false, "You do not have permission to remove members");
+    }
+
+    // Get target member
+    const targetMember = await prisma.workspaceMember.findUnique({
+      where: { id: memberId }
+    });
+
+    if (!targetMember || targetMember.workspaceId !== id) {
+      return sendResponse(res, 404, false, "Member not found");
+    }
+
+    if (targetMember.role === "OWNER") {
+      return sendResponse(res, 403, false, "Cannot remove workspace OWNER");
+    }
+
+    if (currentUserMembership.role === "ADMIN" && targetMember.role === "ADMIN") {
+      return sendResponse(res, 403, false, "ADMIN cannot remove another ADMIN");
+    }
+
+    await prisma.workspaceMember.delete({
+      where: { id: memberId }
+    });
+
+    return sendResponse(res, 200, true, "Member removed successfully");
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
   }

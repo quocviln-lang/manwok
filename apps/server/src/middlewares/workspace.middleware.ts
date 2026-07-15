@@ -11,7 +11,7 @@ export const requireWorkspaceRole = (allowedRoles: string[]) => {
         return sendResponse(res, 401, false, "Not authenticated");
       }
 
-      const workspaceId = req.params.id; // Route must provide :id parameter
+      const workspaceId = req.params.id as string; // Route must provide :id parameter
       if (!workspaceId) {
         return sendResponse(res, 400, false, "Workspace ID is required");
       }

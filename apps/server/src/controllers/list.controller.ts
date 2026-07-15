@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../prisma/prisma.js";
 import { sendResponse } from "../utils/response.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { logActivity } from "../utils/activity.js";
 
 const createListSchema = z.object({
   title: z.string().min(1, "List title is required").max(100),
@@ -23,6 +24,10 @@ export const createList = async (req: AuthRequest, res: Response): Promise<any> 
 
     if (!membership) {
       return sendResponse(res, 403, false, "You do not have access to this board");
+    }
+
+    if (membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "You do not have permission to create lists");
     }
 
     const parsedData = createListSchema.safeParse(req.body);
@@ -50,6 +55,15 @@ export const createList = async (req: AuthRequest, res: Response): Promise<any> 
       },
     });
 
+    await logActivity({
+      boardId,
+      userId,
+      action: "CREATE_LIST",
+      entityType: "LIST",
+      entityId: list.id,
+      entityTitle: list.title
+    });
+
     return sendResponse(res, 201, true, "List created successfully", { list });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -58,6 +72,7 @@ export const createList = async (req: AuthRequest, res: Response): Promise<any> 
 
 const updateListSchema = z.object({
   title: z.string().min(1).max(100).optional(),
+  color: z.string().nullable().optional(),
   archived: z.boolean().optional(),
 });
 
@@ -88,12 +103,24 @@ export const updateList = async (req: AuthRequest, res: Response): Promise<any> 
 
     const dataToUpdate: any = {};
     if (parsedData.data.title !== undefined) dataToUpdate.title = parsedData.data.title;
+    if (parsedData.data.color !== undefined) dataToUpdate.color = parsedData.data.color;
     if (parsedData.data.archived !== undefined) dataToUpdate.archived = parsedData.data.archived;
 
     const updatedList = await prisma.list.update({
       where: { id },
       data: dataToUpdate,
     });
+
+    if (parsedData.data.archived !== undefined && parsedData.data.archived !== list.archived) {
+      await logActivity({
+        boardId: list.boardId,
+        userId,
+        action: parsedData.data.archived ? "ARCHIVE_LIST" : "RESTORE_LIST",
+        entityType: "LIST",
+        entityId: list.id,
+        entityTitle: list.title
+      });
+    }
 
     return sendResponse(res, 200, true, "List updated successfully", { list: updatedList });
   } catch (error: any) {
@@ -102,7 +129,7 @@ export const updateList = async (req: AuthRequest, res: Response): Promise<any> 
 };
 
 const reorderListSchema = z.object({
-  position: z.number({ required_error: "Position is required for reordering" }),
+  position: z.number(),
 });
 
 export const reorderList = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -161,6 +188,10 @@ export const deleteList = async (req: AuthRequest, res: Response): Promise<any> 
       return sendResponse(res, 403, false, "You do not have permission to delete this list");
     }
 
+    if (membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "You do not have permission to delete lists");
+    }
+
     // Logic: User wants to archive it, not hard delete.
     const archivedList = await prisma.list.update({
       where: { id },
@@ -169,6 +200,85 @@ export const deleteList = async (req: AuthRequest, res: Response): Promise<any> 
 
     return sendResponse(res, 200, true, "List archived successfully", { list: archivedList });
   } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+export const copyList = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+
+    const originalList = await prisma.list.findUnique({
+      where: { id },
+      include: {
+        board: true,
+        cards: {
+          where: { archived: false },
+          include: {
+            checklists: { include: { items: true } },
+            attachments: true
+          }
+        }
+      },
+    });
+
+    if (!originalList) return sendResponse(res, 404, false, "List not found");
+
+    const membership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: originalList.board.workspaceId, userId } },
+    });
+
+    if (!membership) return sendResponse(res, 403, false, "You don't have access to this list");
+
+    if (membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "You do not have permission to copy lists");
+    }
+
+    const newList = await prisma.list.create({
+      data: {
+        title: `${originalList.title} (Bản sao)`,
+        color: originalList.color,
+        position: originalList.position + 1, // Just place it slightly to the right
+        boardId: originalList.boardId,
+        cards: {
+          create: originalList.cards.map(card => ({
+            title: card.title,
+            description: card.description,
+            cover: card.cover,
+            position: card.position,
+            createdById: userId,
+            startDate: card.startDate,
+            dueDate: card.dueDate,
+            isCompleted: card.isCompleted,
+            checklists: {
+              create: card.checklists.map(cl => ({
+                title: cl.title,
+                position: cl.position,
+                items: {
+                  create: cl.items.map(item => ({
+                    content: item.content,
+                    isCompleted: item.isCompleted,
+                    position: item.position
+                  }))
+                }
+              }))
+            },
+            attachments: {
+              create: card.attachments.map(att => ({
+                url: att.url,
+                name: att.name,
+                type: att.type
+              }))
+            }
+          }))
+        }
+      }
+    });
+
+    return sendResponse(res, 201, true, "List copied successfully", { list: newList });
+  } catch (error: any) {
+    console.error("Copy List Error:", error);
     return sendResponse(res, 500, false, error.message || "Server Error");
   }
 };
