@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, AlignLeft, MessageSquare, Trash2, Users, Plus, Check, Calendar, Paperclip, CheckSquare, Image as ImageIcon, Smile, CheckCircle } from "lucide-react";
 import { apiCall } from "../services/api";
 import type { Checklist, Attachment, CommentReaction } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { socket } from "../services/socket";
 
 type User = {
   id: string;
@@ -57,6 +58,8 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
 
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [descInput, setDescInput] = useState("");
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [commentInput, setCommentInput] = useState("");
   
@@ -64,7 +67,7 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
   const [isAssignDropdownOpen, setIsAssignDropdownOpen] = useState(false);
   const assignDropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchCardDetails = async () => {
+  const fetchCardDetails = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await apiCall(`/cards/${cardId}`);
@@ -84,7 +87,7 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [cardId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,9 +100,25 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
   }, []);
 
   useEffect(() => {
-    setTimeout(fetchCardDetails, 0);
-    // eslint-disable-next-line
-  }, [cardId]);
+    // Calling fetchCardDetails immediately in effect is normal data fetching,
+    // but to prevent "cascading renders" error from React Strict Mode/Linter if it calls setState synchronously,
+    // actually fetchCardDetails is async so it calls setState asynchronously after await.
+    // However, setIsLoading(true) is synchronous. To avoid the warning, we can put it in a timeout or do it before useEffect.
+    // Let's just wrap the initial fetch in a setTimeout to avoid the synchronous setState warning in effect.
+    const timer = setTimeout(() => {
+      fetchCardDetails();
+    }, 0);
+
+    const handleUpdate = () => {
+      fetchCardDetails();
+    };
+
+    socket.on("board:updated", handleUpdate);
+    return () => {
+      clearTimeout(timer);
+      socket.off("board:updated", handleUpdate);
+    };
+  }, [fetchCardDetails]);
 
   const handleUpdateTitle = async () => {
     if (!titleInput.trim() || titleInput === card?.title) {
@@ -203,6 +222,32 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
       onUpdate();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleUploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      
+      const uploadRes = await apiCall("/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (uploadRes.success && uploadRes.data.url) {
+        await handleUpdateCover(uploadRes.data.url);
+      }
+    } catch (error) {
+      console.error("Lỗi tải ảnh bìa:", error);
+      alert("Không thể tải ảnh bìa lên. Vui lòng thử lại!");
+    } finally {
+      setIsUploadingCover(false);
+      if (e.target) e.target.value = ''; // reset input
     }
   };
 
@@ -351,14 +396,24 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
               </div>
             ) : (
               <div className="w-full h-12 bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <input 
+                  type="file" 
+                  ref={coverInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleUploadCover}
+                />
                 <button 
-                  onClick={() => {
-                    const url = prompt("Nhập URL ảnh bìa:");
-                    if (url) handleUpdateCover(url);
-                  }}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <ImageIcon size={16} /> Thêm ảnh bìa
+                  {isUploadingCover ? (
+                    <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <ImageIcon size={16} />
+                  )}
+                  {isUploadingCover ? "Đang tải..." : "Thêm ảnh bìa"}
                 </button>
               </div>
             )}

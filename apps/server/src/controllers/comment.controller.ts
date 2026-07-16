@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../prisma/prisma.js";
 import { sendResponse } from "../utils/response.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { getIO } from "../socket.js";
 
 const createCommentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
@@ -59,6 +60,8 @@ export const createComment = async (req: AuthRequest, res: Response): Promise<an
       });
     }
 
+    getIO().to(`board_${card.list.board.id}`).emit("board:updated");
+
     return sendResponse(res, 201, true, "Comment created successfully", { comment });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -83,6 +86,8 @@ export const deleteComment = async (req: AuthRequest, res: Response): Promise<an
     }
 
     await prisma.comment.delete({ where: { id } });
+
+    getIO().to(`board_${comment.card.list.board.id}`).emit("board:updated");
 
     return sendResponse(res, 200, true, "Comment deleted successfully");
   } catch (error: any) {

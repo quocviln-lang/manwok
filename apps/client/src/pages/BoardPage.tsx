@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
-import { ChevronLeft, MoreHorizontal, Plus, ImagePlus } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, Plus, ImagePlus, BarChart2, KanbanSquare } from "lucide-react";
 import { apiCall } from "../services/api";
 import ListColumn from "../components/ListColumn";
 import CardDetailModal from "../components/CardDetailModal";
 import BoardSettingsModal from "../components/BoardSettingsModal";
+import BoardCharts from "../components/BoardCharts";
+import BoardFilter, { type FilterState } from "../components/BoardFilter";
+import { socket } from "../services/socket";
 
 export type CardType = {
   id: string;
@@ -23,6 +26,13 @@ export type CardType = {
     attachments: number;
     comments: number;
   };
+  assignees?: {
+    user: {
+      id: string;
+      fullName: string;
+      avatar: string | null;
+    }
+  }[];
 };
 
 export type ListType = {
@@ -44,17 +54,32 @@ type BoardType = {
   lists: ListType[];
 };
 
+const defaultFilterState: FilterState = {
+  noMembers: false,
+  assignedToMe: false,
+  selectedMembers: [],
+  completed: false,
+  notCompleted: false,
+  noDueDate: false,
+  overdue: false,
+  dueTomorrow: false,
+  dueNextWeek: false,
+};
+
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
   const [board, setBoard] = useState<BoardType | null>(null);
   const [isMember, setIsMember] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>("MEMBER");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [filter, setFilter] = useState<FilterState>(defaultFilterState);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"board" | "chart">("board");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchBoard = useCallback(async () => {
@@ -65,6 +90,7 @@ export default function BoardPage() {
         setBoard(res.data.board);
         setIsMember(res.data.isMember !== false);
         setCurrentUserRole(res.data.currentUserRole || "MEMBER");
+        setCurrentUserId(res.data.currentUserId || "");
       }
     } catch (error) {
       console.error(error);
@@ -76,7 +102,23 @@ export default function BoardPage() {
   useEffect(() => {
     // eslint-disable-next-line
     fetchBoard();
-  }, [fetchBoard]);
+
+    if (id) {
+      socket.connect();
+      socket.emit("joinBoard", id);
+
+      const handleBoardUpdated = () => {
+        fetchBoard();
+      };
+
+      socket.on("board:updated", handleBoardUpdated);
+
+      return () => {
+        socket.emit("leaveBoard", id);
+        socket.off("board:updated", handleBoardUpdated);
+      };
+    }
+  }, [fetchBoard, id]);
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, type } = result;
@@ -228,6 +270,69 @@ export default function BoardPage() {
     }
   };
 
+  const getFilteredBoard = () => {
+    if (!board) return null;
+    
+    const hasActiveFilters = 
+      filter.noMembers || filter.assignedToMe || filter.selectedMembers.length > 0 || 
+      filter.completed || filter.notCompleted || 
+      filter.noDueDate || filter.overdue || filter.dueTomorrow || filter.dueNextWeek;
+
+    if (!hasActiveFilters) return board;
+
+    const filteredLists = board.lists.map(list => {
+      const filteredCards = list.cards.filter(card => {
+        // Members filter
+        const memberFiltersActive = filter.noMembers || filter.assignedToMe || filter.selectedMembers.length > 0;
+        let memberMatch = !memberFiltersActive;
+        if (memberFiltersActive) {
+          const assignees = card.assignees || [];
+          if (filter.noMembers && assignees.length === 0) memberMatch = true;
+          if (filter.assignedToMe && assignees.some(a => a.user.id === currentUserId)) memberMatch = true;
+          if (filter.selectedMembers.some(id => assignees.some(a => a.user.id === id))) memberMatch = true;
+        }
+
+        // Status filter
+        const statusFiltersActive = filter.completed || filter.notCompleted;
+        let statusMatch = !statusFiltersActive;
+        if (statusFiltersActive) {
+          if (filter.completed && card.isCompleted) statusMatch = true;
+          if (filter.notCompleted && !card.isCompleted) statusMatch = true;
+        }
+
+        // Due date filter
+        const dateFiltersActive = filter.noDueDate || filter.overdue || filter.dueTomorrow || filter.dueNextWeek;
+        let dateMatch = !dateFiltersActive;
+        if (dateFiltersActive) {
+          if (filter.noDueDate && !card.dueDate) dateMatch = true;
+          if (card.dueDate) {
+            const dueDate = new Date(card.dueDate);
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfTomorrow = new Date(startOfToday);
+            startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+            const endOfTomorrow = new Date(startOfTomorrow);
+            endOfTomorrow.setDate(endOfTomorrow.getDate() + 1);
+            const nextWeek = new Date(startOfToday);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            if (filter.overdue && dueDate < startOfToday) dateMatch = true;
+            if (filter.dueTomorrow && dueDate >= startOfTomorrow && dueDate < endOfTomorrow) dateMatch = true;
+            if (filter.dueNextWeek && dueDate >= endOfTomorrow && dueDate < nextWeek) dateMatch = true;
+          }
+        }
+
+        return memberMatch && statusMatch && dateMatch;
+      });
+      return { ...list, cards: filteredCards };
+    });
+
+    return { ...board, lists: filteredLists };
+  };
+
+  const filteredBoard = getFilteredBoard();
+  const hasActiveFilters = board !== filteredBoard;
+
   return (
     <div 
       className="h-screen flex flex-col relative transition-colors duration-300"
@@ -242,7 +347,7 @@ export default function BoardPage() {
       <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-10 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0">
+      <header className="relative z-40 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0">
         <div className="flex items-center gap-4">
           <Link 
             to={`/w/${board.workspaceId}`} 
@@ -266,21 +371,6 @@ export default function BoardPage() {
             }}
             disabled={!isMember}
           />
-
-          {isMember && (
-            <select
-              value={board.visibility}
-              onChange={async (e) => {
-                await apiCall(`/boards/${board.id}`, { method: "PATCH", body: JSON.stringify({ visibility: e.target.value }) });
-                fetchBoard();
-              }}
-              className="bg-black/20 text-white text-sm rounded-md px-2 py-1 border-none outline-none cursor-pointer focus:ring-2 focus:ring-white/50"
-            >
-              <option value="PRIVATE" className="text-black">Riêng tư</option>
-              <option value="WORKSPACE" className="text-black">Workspace</option>
-              <option value="PUBLIC" className="text-black">Công khai</option>
-            </select>
-          )}
 
           {!isMember && (
             <button 
@@ -319,6 +409,38 @@ export default function BoardPage() {
             )}
             <span className="hidden sm:inline">Đổi nền</span>
           </button>
+          
+          <div className="ml-2">
+            <BoardFilter 
+              workspaceId={board.workspaceId} 
+              currentUserId={currentUserId}
+              filter={filter} 
+              setFilter={setFilter}
+              onClearFilters={() => setFilter(defaultFilterState)}
+            />
+          </div>
+
+          <div className="flex bg-black/20 rounded-lg p-0.5 ml-2">
+            <button
+              onClick={() => setViewMode("board")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewMode === "board" ? "bg-white/30 text-white shadow-sm" : "text-white/70 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <KanbanSquare size={16} />
+              <span className="hidden sm:inline">Bảng</span>
+            </button>
+            <button
+              onClick={() => setViewMode("chart")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewMode === "chart" ? "bg-white/30 text-white shadow-sm" : "text-white/70 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <BarChart2 size={16} />
+              <span className="hidden sm:inline">Biểu đồ</span>
+            </button>
+          </div>
+
           <button 
             onClick={() => setIsSettingsModalOpen(true)}
             className="p-1.5 hover:bg-white/20 rounded-lg transition-colors ml-1"
@@ -329,10 +451,11 @@ export default function BoardPage() {
         </div>
       </header>
 
-      {/* Canvas */}
-      <div className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="h-full flex items-start p-4 gap-4">
-          <DragDropContext onDragEnd={handleDragEnd}>
+      {/* Canvas or Charts */}
+      {viewMode === "board" ? (
+        <div className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden">
+          <div className="h-full flex items-start p-4 gap-4">
+            <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="board" type="list" direction="horizontal">
               {(provided) => (
                 <div 
@@ -340,7 +463,7 @@ export default function BoardPage() {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                 >
-                  {board.lists.map((list, index) => (
+                  {filteredBoard?.lists.map((list, index) => (
                     <ListColumn 
                       key={list.id} 
                       list={list} 
@@ -348,6 +471,7 @@ export default function BoardPage() {
                       onRefresh={fetchBoard}
                       onCardClick={(cardId) => setSelectedCardId(cardId)}
                       currentUserRole={currentUserRole}
+                      isDragDisabled={hasActiveFilters}
                     />
                   ))}
                   {provided.placeholder}
@@ -403,6 +527,11 @@ export default function BoardPage() {
           )}
         </div>
       </div>
+      ) : (
+        <div className="relative z-10 flex-1 bg-gray-50/95 dark:bg-gray-900/95 overflow-hidden flex flex-col">
+          <BoardCharts lists={filteredBoard?.lists || []} />
+        </div>
+      )}
       
       {selectedCardId && (
         <CardDetailModal 
@@ -418,6 +547,7 @@ export default function BoardPage() {
           boardId={board.id}
           workspaceId={board.workspaceId}
           currentUserRole={currentUserRole}
+          boardVisibility={board.visibility}
           onClose={() => setIsSettingsModalOpen(false)}
           onUpdate={fetchBoard}
         />
