@@ -7,14 +7,17 @@ type BoardSettingsModalProps = {
   boardId: string;
   workspaceId: string;
   currentUserRole: string;
+  boardVisibility: string;
   onClose: () => void;
   onUpdate: () => void;
 };
 
-export default function BoardSettingsModal({ boardId, workspaceId, currentUserRole, onClose, onUpdate }: BoardSettingsModalProps) {
+export default function BoardSettingsModal({ boardId, workspaceId, currentUserRole, boardVisibility, onClose, onUpdate }: BoardSettingsModalProps) {
   const [activeTab, setActiveTab] = useState<"activity" | "archived" | "share">("activity");
   
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [hasMoreActivities, setHasMoreActivities] = useState(false);
+  const [activityPage, setActivityPage] = useState(1);
   const [archivedLists, setArchivedLists] = useState<ListType[]>([]);
   const [archivedCards, setArchivedCards] = useState<CardType[]>([]);
   const [members, setMembers] = useState<{ id: string; role: string; user: { fullName: string; avatar: string | null } }[]>([]);
@@ -22,11 +25,18 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
 
-  const fetchActivities = useCallback(async () => {
-    setIsLoading(true);
+  const fetchActivities = useCallback(async (page = 1, append = false) => {
+    if (!append) setIsLoading(true);
     try {
-      const res = await apiCall(`/boards/${boardId}/activities`);
-      if (res.success) setActivities(res.data.activities);
+      const res = await apiCall(`/boards/${boardId}/activities?page=${page}&limit=20`);
+      if (res.success) {
+        if (append) {
+          setActivities(prev => [...prev, ...res.data.activities]);
+        } else {
+          setActivities(res.data.activities);
+        }
+        setHasMoreActivities(res.data.hasMore);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -63,7 +73,10 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeTab === "activity") fetchActivities();
+      if (activeTab === "activity") {
+        setActivityPage(1);
+        fetchActivities(1, false);
+      }
       if (activeTab === "archived") fetchArchived();
       if (activeTab === "share") fetchMembers();
     }, 0);
@@ -241,28 +254,46 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
           ) : (
             <>
               {activeTab === "activity" && (
-                <div className="space-y-4">
-                  {activities.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">Chưa có hoạt động nào được ghi lại.</p>
-                  ) : (
-                    activities.map(act => (
-                      <div key={act.id} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
-                        {act.user.avatar ? (
-                          <img src={act.user.avatar} alt={act.user.fullName} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0">
-                            {act.user.fullName[0].toUpperCase()}
+                <div className="flex flex-col h-[400px]">
+                  <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                    {activities.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">Chưa có hoạt động nào được ghi lại.</p>
+                    ) : (
+                      <>
+                        {activities.map(act => (
+                          <div key={act.id} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
+                            {act.user.avatar ? (
+                              <img src={act.user.avatar} alt={act.user.fullName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0">
+                                {act.user.fullName[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div>{renderActivityText(act)}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">
+                                {new Date(act.createdAt).toLocaleString('vi-VN')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {hasMoreActivities && (
+                          <div className="flex justify-center pt-2 pb-4">
+                            <button
+                              onClick={() => {
+                                const nextPage = activityPage + 1;
+                                setActivityPage(nextPage);
+                                fetchActivities(nextPage, true);
+                              }}
+                              className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                            >
+                              Tải thêm
+                            </button>
                           </div>
                         )}
-                        <div>
-                          <div>{renderActivityText(act)}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {new Date(act.createdAt).toLocaleString('vi-VN')}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -338,6 +369,34 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
 
               {activeTab === "share" && (
                 <div>
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Quyền riêng tư của bảng</h3>
+                    <div className="flex items-center gap-4">
+                      <select
+                        value={boardVisibility}
+                        onChange={async (e) => {
+                          try {
+                            await apiCall(`/boards/${boardId}`, { method: "PATCH", body: JSON.stringify({ visibility: e.target.value }) });
+                            onUpdate();
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        disabled={currentUserRole === "MEMBER"}
+                        className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="PRIVATE">Riêng tư</option>
+                        <option value="WORKSPACE">Workspace</option>
+                        <option value="PUBLIC">Công khai</option>
+                      </select>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {boardVisibility === "PRIVATE" && "Chỉ thành viên bảng mới có thể xem và chỉnh sửa."}
+                        {boardVisibility === "WORKSPACE" && "Mọi thành viên trong Workspace đều có thể xem."}
+                        {boardVisibility === "PUBLIC" && "Bất kỳ ai có link đều có thể xem bảng."}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-lg text-sm flex justify-between items-center">
                     <span>Chia sẻ link bảng cho mọi người. Nhớ kiểm tra quyền Bảng.</span>
                     <button 

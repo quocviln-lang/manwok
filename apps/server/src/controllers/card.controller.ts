@@ -4,6 +4,7 @@ import prisma from "../prisma/prisma.js";
 import { sendResponse } from "../utils/response.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { logActivity } from "../utils/activity.js";
+import { getIO } from "../socket.js";
 
 const createCardSchema = z.object({
   title: z.string().min(1).max(255),
@@ -68,6 +69,8 @@ export const createCard = async (req: AuthRequest, res: Response): Promise<any> 
       entityId: card.id,
       entityTitle: card.title
     });
+
+    getIO().to(`board_${list.boardId}`).emit("board:updated");
 
     return sendResponse(res, 201, true, "Card created successfully", { card });
   } catch (error: any) {
@@ -191,6 +194,8 @@ export const updateCard = async (req: AuthRequest, res: Response): Promise<any> 
       });
     }
 
+    getIO().to(`board_${card.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "Card updated successfully", { card: updatedCard });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -253,6 +258,8 @@ export const moveCard = async (req: AuthRequest, res: Response): Promise<any> =>
       });
     }
 
+    getIO().to(`board_${card.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "Card moved successfully", { card: updatedCard });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -286,6 +293,8 @@ export const deleteCard = async (req: AuthRequest, res: Response): Promise<any> 
       data: { archived: true },
     });
 
+    getIO().to(`board_${card.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "Card archived successfully", { card: archivedCard });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -344,6 +353,8 @@ export const addAssignee = async (req: AuthRequest, res: Response): Promise<any>
       });
     }
 
+    getIO().to(`board_${card.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 201, true, "Assignee added successfully", { assignee });
   } catch (error: any) {
     if (error.code === 'P2002') {
@@ -384,6 +395,8 @@ export const removeAssignee = async (req: AuthRequest, res: Response): Promise<a
       },
     });
 
+    getIO().to(`board_${card.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "Assignee removed successfully");
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -456,6 +469,8 @@ export const copyCard = async (req: AuthRequest, res: Response): Promise<any> =>
       }
     });
 
+    getIO().to(`board_${originalCard.list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 201, true, "Card copied successfully", { card: newCard });
   } catch (error: any) {
     console.error("Copy Card Error:", error);

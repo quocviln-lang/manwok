@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Draggable } from "@hello-pangea/dnd";
 import { AlignLeft, MessageSquare, Paperclip, CheckSquare, Clock, CheckCircle, MoreHorizontal, Copy, Archive } from "lucide-react";
 import { apiCall } from "../services/api";
@@ -10,9 +11,10 @@ type CardItemProps = {
   onClick: () => void;
   onRefresh: () => void;
   currentUserRole?: string;
+  isDragDisabled?: boolean;
 };
 
-export default function CardItem({ card, index, onClick, onRefresh, currentUserRole }: CardItemProps) {
+export default function CardItem({ card, index, onClick, onRefresh, currentUserRole, isDragDisabled = false }: CardItemProps) {
   // In a real app we'd fetch actual counts, but we mock them based on description/comments presence for now
   const hasDescription = !!card.description;
   const countComments = card._count?.comments || 0;
@@ -20,17 +22,38 @@ export default function CardItem({ card, index, onClick, onRefresh, currentUserR
   const countChecklists = card._count?.checklists || 0;
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
+  const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        isSettingsOpen &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsSettingsOpen(false);
       }
     };
+    
+    const handleScroll = () => {
+      if (isSettingsOpen) setIsSettingsOpen(false);
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [isSettingsOpen]);
 
   const handleToggleComplete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -69,7 +92,7 @@ export default function CardItem({ card, index, onClick, onRefresh, currentUserR
   const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
 
   return (
-    <Draggable draggableId={card.id} index={index}>
+    <Draggable draggableId={card.id} index={index} isDragDisabled={isDragDisabled}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -94,10 +117,18 @@ export default function CardItem({ card, index, onClick, onRefresh, currentUserR
             </p>
             
             {/* Settings button & dropdown */}
-            <div className="relative" ref={settingsRef}>
+            <div className="relative">
               <button
+                ref={buttonRef}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (buttonRef.current) {
+                    const rect = buttonRef.current.getBoundingClientRect();
+                    setDropdownCoords({
+                      top: rect.bottom + 4,
+                      left: rect.right - 192, // 192px is w-48
+                    });
+                  }
                   setIsSettingsOpen(!isSettingsOpen);
                 }}
                 className={`p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-all ${isSettingsOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
@@ -105,9 +136,11 @@ export default function CardItem({ card, index, onClick, onRefresh, currentUserR
                 <MoreHorizontal size={16} />
               </button>
               
-              {isSettingsOpen && (
+              {isSettingsOpen && createPortal(
                 <div 
-                  className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-100 dark:border-gray-800 z-50 py-1 overflow-hidden"
+                  ref={dropdownRef}
+                  className="fixed w-48 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-100 dark:border-gray-800 z-50 py-1 overflow-hidden"
+                  style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
                   onClick={e => e.stopPropagation()} // Prevent card click
                 >
                   <button
@@ -137,7 +170,8 @@ export default function CardItem({ card, index, onClick, onRefresh, currentUserR
                       Lưu trữ thẻ
                     </button>
                   )}
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </div>

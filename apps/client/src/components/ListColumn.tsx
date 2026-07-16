@@ -21,9 +21,10 @@ type ListColumnProps = {
   onRefresh: () => void;
   onCardClick: (cardId: string) => void;
   currentUserRole?: string;
+  isDragDisabled?: boolean;
 };
 
-export default function ListColumn({ list, index, onRefresh, onCardClick, currentUserRole }: ListColumnProps) {
+export default function ListColumn({ list, index, onRefresh, onCardClick, currentUserRole, isDragDisabled = false }: ListColumnProps) {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState("");
 
@@ -92,7 +93,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
   const currentBgClass = LIST_COLORS.find(c => c.value === list.color)?.bgClass || LIST_COLORS[0].bgClass;
 
   return (
-    <Draggable draggableId={list.id} index={index}>
+    <Draggable draggableId={list.id} index={index} isDragDisabled={isDragDisabled}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -172,7 +173,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
             </div>
 
           {/* Cards Droppable Area */}
-          <Droppable droppableId={list.id} type="card">
+          <Droppable droppableId={list.id} type="card" isDropDisabled={isDragDisabled}>
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
@@ -188,6 +189,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
                     onClick={() => onCardClick(card.id)}
                     onRefresh={onRefresh}
                     currentUserRole={currentUserRole}
+                    isDragDisabled={isDragDisabled}
                   />
                 ))}
                 {provided.placeholder}

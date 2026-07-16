@@ -92,6 +92,13 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
               where: { archived: false },
               orderBy: { position: "asc" },
               include: {
+                assignees: {
+                  include: {
+                    user: {
+                      select: { id: true, fullName: true, avatar: true }
+                    }
+                  }
+                },
                 _count: {
                   select: {
                     checklists: true,
@@ -122,7 +129,8 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
     return sendResponse(res, 200, true, "Board fetched successfully", { 
       board,
       isMember: !!membership,
-      currentUserRole: membership ? membership.role : null
+      currentUserRole: membership ? membership.role : null,
+      currentUserId: userId
     });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -241,6 +249,8 @@ export const getActivities = async (req: AuthRequest, res: Response): Promise<an
   try {
     const id = req.params.id as string;
     const userId = req.user!.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
 
     const board = await prisma.board.findUnique({ where: { id } });
     if (!board) return sendResponse(res, 404, false, "Board not found");
@@ -257,10 +267,14 @@ export const getActivities = async (req: AuthRequest, res: Response): Promise<an
         user: { select: { id: true, fullName: true, avatar: true } }
       },
       orderBy: { createdAt: 'desc' },
-      take: 50 // Limit to latest 50 activities for performance
+      skip: (page - 1) * limit,
+      take: limit
     });
+    
+    const totalActivities = await prisma.activity.count({ where: { boardId: id } });
+    const hasMore = page * limit < totalActivities;
 
-    return sendResponse(res, 200, true, "Activities fetched", { activities });
+    return sendResponse(res, 200, true, "Activities fetched", { activities, hasMore, totalActivities });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
   }

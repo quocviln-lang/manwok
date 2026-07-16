@@ -4,6 +4,7 @@ import prisma from "../prisma/prisma.js";
 import { sendResponse } from "../utils/response.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { logActivity } from "../utils/activity.js";
+import { getIO } from "../socket.js";
 
 const createListSchema = z.object({
   title: z.string().min(1, "List title is required").max(100),
@@ -64,6 +65,8 @@ export const createList = async (req: AuthRequest, res: Response): Promise<any> 
       entityTitle: list.title
     });
 
+    getIO().to(`board_${boardId}`).emit("board:updated");
+
     return sendResponse(res, 201, true, "List created successfully", { list });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -122,6 +125,8 @@ export const updateList = async (req: AuthRequest, res: Response): Promise<any> 
       });
     }
 
+    getIO().to(`board_${list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "List updated successfully", { list: updatedList });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -162,6 +167,8 @@ export const reorderList = async (req: AuthRequest, res: Response): Promise<any>
       data: { position: parsedData.data.position },
     });
 
+    getIO().to(`board_${list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "List reordered successfully", { list: updatedList });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -198,6 +205,8 @@ export const deleteList = async (req: AuthRequest, res: Response): Promise<any> 
       data: { archived: true },
     });
 
+    getIO().to(`board_${list.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 200, true, "List archived successfully", { list: archivedList });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -276,6 +285,8 @@ export const copyList = async (req: AuthRequest, res: Response): Promise<any> =>
       }
     });
 
+    getIO().to(`board_${originalList.boardId}`).emit("board:updated");
+    
     return sendResponse(res, 201, true, "List copied successfully", { list: newList });
   } catch (error: any) {
     console.error("Copy List Error:", error);
