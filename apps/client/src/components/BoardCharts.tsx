@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import type { CardType, ListType } from "../pages/BoardPage";
+import type { ListType } from "../pages/BoardPage";
 
 type BoardChartsProps = {
   lists: ListType[];
