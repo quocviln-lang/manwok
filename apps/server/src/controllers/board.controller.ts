@@ -7,6 +7,7 @@ import type { AuthRequest } from "../middlewares/auth.middleware.js";
 const createBoardSchema = z.object({
   title: z.string().min(1, "Board title is required").max(100),
   description: z.string().optional(),
+  color: z.string().optional(),
   cover: z.string().optional(),
   visibility: z.enum(["PRIVATE", "WORKSPACE", "PUBLIC"]).optional(),
 });
@@ -25,8 +26,16 @@ export const createBoard = async (req: AuthRequest, res: Response): Promise<any>
       return sendResponse(res, 403, false, "You are not a member of this workspace");
     }
 
-    if (membership.role === "MEMBER") {
-      return sendResponse(res, 403, false, "You do not have permission to create boards");
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { settings: true },
+    });
+
+    const settings = workspace?.settings as any;
+    const adminOnlyCreation = settings?.boardCreationRestriction === "ADMIN_ONLY";
+
+    if (adminOnlyCreation && membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "Bạn không có quyền tạo bảng trong Không gian làm việc này");
     }
 
     const parsedData = createBoardSchema.safeParse(req.body);
@@ -34,16 +43,29 @@ export const createBoard = async (req: AuthRequest, res: Response): Promise<any>
       return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
     }
 
-    const { title, description, cover, visibility } = parsedData.data;
+    const { title, description, color, cover, visibility } = parsedData.data;
 
     const board = await prisma.board.create({
       data: {
         title,
         description: description ?? null,
+        color: color ?? "#0079BF",
         cover: cover ?? null,
         visibility: visibility ?? "WORKSPACE",
         workspaceId,
+        creatorId: userId,
       },
+    });
+
+    await prisma.workspaceActivity.create({
+      data: {
+        workspaceId,
+        userId,
+        action: "CREATE_BOARD",
+        entityType: "BOARD",
+        entityId: board.id,
+        entityTitle: board.title
+      }
     });
 
     return sendResponse(res, 201, true, "Board created successfully", { board });
@@ -110,6 +132,11 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
             }
           }
         },
+        workspace: {
+          select: {
+            settings: true
+          }
+        }
       },
     });
 
@@ -130,7 +157,8 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
       board,
       isMember: !!membership,
       currentUserRole: membership ? membership.role : null,
-      currentUserId: userId
+      currentUserId: userId,
+      workspaceSettings: board.workspace.settings
     });
   } catch (error: any) {
     return sendResponse(res, 500, false, error.message || "Server Error");
@@ -140,7 +168,9 @@ export const getBoardById = async (req: AuthRequest, res: Response): Promise<any
 const updateBoardSchema = z.object({
   title: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
+  color: z.string().optional(),
   cover: z.string().optional(),
+  archived: z.boolean().optional(),
   visibility: z.enum(["PRIVATE", "WORKSPACE", "PUBLIC"]).optional(),
 });
 
@@ -160,8 +190,15 @@ export const updateBoard = async (req: AuthRequest, res: Response): Promise<any>
       return sendResponse(res, 403, false, "You are not a member of this workspace");
     }
 
-    if (membership.role === "MEMBER") {
-      return sendResponse(res, 403, false, "You do not have permission to update board settings");
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: board.workspaceId },
+      select: { settings: true },
+    });
+    const settings = workspace?.settings as any;
+    const adminOnlyDeletion = settings?.boardDeletionRestriction === "ADMIN_ONLY";
+
+    if (adminOnlyDeletion && membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "Bạn không có quyền chỉnh sửa bảng trong Không gian làm việc này");
     }
 
     const parsedData = updateBoardSchema.safeParse(req.body);
@@ -172,13 +209,28 @@ export const updateBoard = async (req: AuthRequest, res: Response): Promise<any>
     const dataToUpdate: any = {};
     if (parsedData.data.title !== undefined) dataToUpdate.title = parsedData.data.title;
     if (parsedData.data.description !== undefined) dataToUpdate.description = parsedData.data.description;
+    if (parsedData.data.color !== undefined) dataToUpdate.color = parsedData.data.color;
     if (parsedData.data.cover !== undefined) dataToUpdate.cover = parsedData.data.cover;
+    if (parsedData.data.archived !== undefined) dataToUpdate.archived = parsedData.data.archived;
     if (parsedData.data.visibility !== undefined) dataToUpdate.visibility = parsedData.data.visibility;
 
     const updatedBoard = await prisma.board.update({
       where: { id },
       data: dataToUpdate,
     });
+
+    if (parsedData.data.archived !== undefined) {
+      await prisma.workspaceActivity.create({
+        data: {
+          workspaceId: board.workspaceId,
+          userId,
+          action: parsedData.data.archived ? "ARCHIVE_BOARD" : "RESTORE_BOARD",
+          entityType: "BOARD",
+          entityId: board.id,
+          entityTitle: board.title
+        }
+      });
+    }
 
     return sendResponse(res, 200, true, "Board updated successfully", { board: updatedBoard });
   } catch (error: any) {
@@ -198,12 +250,33 @@ export const deleteBoard = async (req: AuthRequest, res: Response): Promise<any>
       where: { workspaceId_userId: { workspaceId: board.workspaceId, userId } },
     });
 
-    // Only OWNER or ADMIN can delete a board
-    if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
-      return sendResponse(res, 403, false, "You don't have permission to delete this board");
+    if (!membership) {
+      return sendResponse(res, 403, false, "You are not a member of this workspace");
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: board.workspaceId },
+      select: { settings: true },
+    });
+    const settings = workspace?.settings as any;
+    const adminOnlyDeletion = settings?.boardDeletionRestriction === "ADMIN_ONLY";
+
+    if (adminOnlyDeletion && membership.role === "MEMBER") {
+      return sendResponse(res, 403, false, "Bạn không có quyền xóa bảng trong Không gian làm việc này");
     }
 
     await prisma.board.delete({ where: { id } });
+
+    await prisma.workspaceActivity.create({
+      data: {
+        workspaceId: board.workspaceId,
+        userId,
+        action: "DELETE_BOARD",
+        entityType: "BOARD",
+        entityId: board.id,
+        entityTitle: board.title
+      }
+    });
 
     return sendResponse(res, 200, true, "Board deleted successfully");
   } catch (error: any) {

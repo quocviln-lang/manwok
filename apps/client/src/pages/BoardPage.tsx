@@ -72,6 +72,7 @@ export default function BoardPage() {
   const [isMember, setIsMember] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>("MEMBER");
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [workspaceSettings, setWorkspaceSettings] = useState<Record<string, any> | null>(null);
   const [filter, setFilter] = useState<FilterState>(defaultFilterState);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingList, setIsAddingList] = useState(false);
@@ -91,6 +92,7 @@ export default function BoardPage() {
         setIsMember(res.data.isMember !== false);
         setCurrentUserRole(res.data.currentUserRole || "MEMBER");
         setCurrentUserId(res.data.currentUserId || "");
+        setWorkspaceSettings(res.data.workspaceSettings || null);
       }
     } catch (error) {
       console.error(error);
@@ -548,6 +550,7 @@ export default function BoardPage() {
           workspaceId={board.workspaceId}
           currentUserRole={currentUserRole}
           boardVisibility={board.visibility}
+          workspaceSettings={workspaceSettings}
           onClose={() => setIsSettingsModalOpen(false)}
           onUpdate={fetchBoard}
         />

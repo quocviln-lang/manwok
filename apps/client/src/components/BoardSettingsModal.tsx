@@ -8,11 +8,12 @@ type BoardSettingsModalProps = {
   workspaceId: string;
   currentUserRole: string;
   boardVisibility: string;
+  workspaceSettings?: Record<string, any>;
   onClose: () => void;
   onUpdate: () => void;
 };
 
-export default function BoardSettingsModal({ boardId, workspaceId, currentUserRole, boardVisibility, onClose, onUpdate }: BoardSettingsModalProps) {
+export default function BoardSettingsModal({ boardId, workspaceId, currentUserRole, boardVisibility, workspaceSettings, onClose, onUpdate }: BoardSettingsModalProps) {
   const [activeTab, setActiveTab] = useState<"activity" | "archived" | "share">("activity");
   
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -410,23 +411,29 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
                     </button>
                   </div>
                   
-                  <form onSubmit={handleInvite} className="mb-6 flex gap-2">
-                    <input 
-                      type="email" 
-                      placeholder="Nhập email để mời vào Workspace..." 
-                      className="flex-1 px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      required
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={isInviting}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {isInviting ? "Đang gửi..." : "Mời"}
-                    </button>
-                  </form>
+                  {workspaceSettings?.memberRestriction === "ADMIN_ONLY" && currentUserRole === "MEMBER" ? (
+                    <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
+                      Không gian làm việc này đã giới hạn quyền thêm thành viên. Chỉ Quản trị viên mới có thể mời người mới.
+                    </div>
+                  ) : (
+                    <form onSubmit={handleInvite} className="mb-6 flex gap-2">
+                      <input 
+                        type="email" 
+                        placeholder="Nhập email để mời vào Workspace..." 
+                        className="flex-1 px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        required
+                      />
+                      <button 
+                        type="submit" 
+                        disabled={isInviting}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {isInviting ? "Đang gửi..." : "Mời"}
+                      </button>
+                    </form>
+                  )}
                   <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Thành viên Workspace ({members.length})</h3>
                   <div className="space-y-3">
                     {members.map(member => (
