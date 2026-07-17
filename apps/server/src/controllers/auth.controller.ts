@@ -5,6 +5,10 @@ import prisma from "../prisma/prisma.js";
 import { generateToken } from "../utils/jwt.js";
 import { sendResponse } from "../utils/response.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -76,6 +80,10 @@ export const login = async (req: Request, res: Response): Promise<any> => {
       return sendResponse(res, 403, false, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.");
     }
 
+    if (!user.password) {
+      return sendResponse(res, 400, false, "Tài khoản này được đăng ký bằng Google. Vui lòng chọn Đăng nhập bằng Google.");
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return sendResponse(res, 400, false, "Invalid credentials");
@@ -130,6 +138,68 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<any> => {
     return sendResponse(res, 500, false, error.message || "Server Error");
   }
 };
+
+export const googleLogin = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return sendResponse(res, 400, false, "Google credential is required");
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID || "",
+    });
+    
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return sendResponse(res, 400, false, "Invalid Google token payload");
+    }
+
+    const { email, name, picture, sub: googleId } = payload;
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: name || "Google User",
+          avatar: picture,
+          googleId,
+          password: "", // Thêm password rỗng để tránh lỗi nếu cache Prisma chưa update
+        },
+      });
+    } else {
+      if (!user.googleId) {
+        user = await prisma.user.update({
+          where: { email },
+          data: { googleId },
+        });
+      }
+      
+      if (!user.isActive) {
+        return sendResponse(res, 403, false, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.");
+      }
+    }
+
+    const token = generateToken(user.id);
+
+    return sendResponse(res, 200, true, "Login successful", {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        systemRole: user.systemRole,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Google Authentication failed");
+  }
+};
+
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
@@ -264,6 +334,10 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<a
     
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return sendResponse(res, 404, false, "User not found");
+    
+    if (!user.password) {
+      return sendResponse(res, 400, false, "Tài khoản của bạn đăng nhập bằng Google và chưa có mật khẩu.");
+    }
     
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return sendResponse(res, 400, false, "Mật khẩu hiện tại không đúng");

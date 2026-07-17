@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiCall } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 export default function AuthPage() {
   const location = useLocation();
@@ -21,6 +22,31 @@ export default function AuthPage() {
 
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      const res = await apiCall("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      if (res.success) {
+        login(res.data.token, res.data.user);
+        if (res.data.user.systemRole === "SYSTEM_ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message || "Đăng nhập Google thất bại");
+      else setError("Đăng nhập Google thất bại");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +147,19 @@ export default function AuthPage() {
           >
             {isLoading ? "Đang xử lý..." : "ĐĂNG KÝ"}
           </button>
+          
+          <div className="relative flex items-center py-2">
+            <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
+            <span className="shrink-0 mx-4 text-gray-400 text-sm">Hoặc</span>
+            <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Đăng nhập Google thất bại")}
+            />
+          </div>
         </form>
       </div>
 
@@ -167,6 +206,19 @@ export default function AuthPage() {
           >
             {isLoading ? "Đang xử lý..." : "ĐĂNG NHẬP"}
           </button>
+          
+          <div className="relative flex items-center py-2">
+            <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
+            <span className="shrink-0 mx-4 text-gray-400 text-sm">Hoặc</span>
+            <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Đăng nhập Google thất bại")}
+            />
+          </div>
         </form>
       </div>
 

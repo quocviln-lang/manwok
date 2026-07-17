@@ -19,7 +19,8 @@ enum SystemRole {
 model User {
   id         String     @id @default(uuid())
   email      String     @unique
-  password   String
+  password   String?
+  googleId   String?    @unique @map("google_id")
   fullName   String     @map("full_name")
   avatar     String?
   systemRole SystemRole @default(SYSTEM_USER) @map("system_role")

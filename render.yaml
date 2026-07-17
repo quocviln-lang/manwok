@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: manwok-server
+    env: node
+    rootDir: apps/server
+    buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: DATABASE_URL
+        sync: false # The user will input this manually in the Render dashboard
+      - key: GOOGLE_CLIENT_ID
+        sync: false

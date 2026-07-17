@@ -21,7 +21,7 @@ export default function LandingPage() {
           <source src="/videos/bg-video.mp4" type="video/mp4" />
         </video>
         {/* Gradient Overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/90"></div>
+        <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/50 to-black/90"></div>
       </div>
 
       {/* Header */}
