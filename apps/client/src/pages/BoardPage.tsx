@@ -459,7 +459,7 @@ export default function BoardPage() {
           <div className="h-full flex items-start p-4 gap-4">
             <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="board" type="list" direction="horizontal">
-              {(provided) => (
+              {(provided: any) => (
                 <div 
                   className="flex items-start gap-4 h-full"
                   ref={provided.innerRef}
@@ -550,7 +550,7 @@ export default function BoardPage() {
           workspaceId={board.workspaceId}
           currentUserRole={currentUserRole}
           boardVisibility={board.visibility}
-          workspaceSettings={workspaceSettings}
+          workspaceSettings={workspaceSettings || undefined}
           onClose={() => setIsSettingsModalOpen(false)}
           onUpdate={fetchBoard}
         />

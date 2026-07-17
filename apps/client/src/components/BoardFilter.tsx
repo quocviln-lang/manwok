@@ -63,12 +63,12 @@ export default function BoardFilter({ workspaceId, currentUserId, filter, setFil
 
   const toggleFilter = (key: keyof FilterState, value?: string) => {
     setFilter(prev => {
-      if (key === 'selectedMembers') {
+      if (key === 'selectedMembers' && value) {
         const current = prev.selectedMembers;
         if (current.includes(value)) {
-          return { ...prev, selectedMembers: current.filter(id => id !== value) };
+          return { ...prev, selectedMembers: current.filter(id => id !== value) as string[] };
         } else {
-          return { ...prev, selectedMembers: [...current, value] };
+          return { ...prev, selectedMembers: [...current, value] as string[] };
         }
       }
       return { ...prev, [key]: !prev[key as keyof FilterState] };

@@ -1,9 +1,8 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { Moon, Sun, User as UserIcon, LogOut, X } from "lucide-react";
+import { Moon, Sun, User as UserIcon, LogOut } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { apiCall } from "../services/api";
 
 import Sidebar from "../components/Sidebar";
 import NotificationMenu from "../components/NotificationMenu";

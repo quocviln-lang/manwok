@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiCall } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 export default function AuthPage() {
   const location = useLocation();

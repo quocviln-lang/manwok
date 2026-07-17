@@ -454,7 +454,6 @@ export default function ProfilePage() {
 
       {selectedCardId && (
         <CardDetailModal 
-          isOpen={true} 
           onClose={() => setSelectedCardId(null)} 
           cardId={selectedCardId} 
           boardId={upcomingTasks.find(t => t.id === selectedCardId)?.list?.board?.id || ""} 

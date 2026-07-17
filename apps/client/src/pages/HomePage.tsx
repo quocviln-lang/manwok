@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { apiCall } from "../services/api";
-import { LayoutDashboard, Users, Plus, ArrowRight, Sparkles } from "lucide-react";
+import { LayoutDashboard, Users, Plus, ArrowRight } from "lucide-react";
 import CreateWorkspaceModal from "../components/CreateWorkspaceModal";
 import { useAuth } from "../context/AuthContext";
 

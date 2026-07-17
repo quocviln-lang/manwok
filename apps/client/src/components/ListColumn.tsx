@@ -174,7 +174,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
 
           {/* Cards Droppable Area */}
           <Droppable droppableId={list.id} type="card" isDropDisabled={isDragDisabled}>
-            {(provided, snapshot) => (
+            {(provided: any, snapshot: any) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
