@@ -75,7 +75,7 @@ const updateRoleSchema = z.object({
 
 export const updateUserRole = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const parsedData = updateRoleSchema.safeParse(req.body);
     if (!parsedData.success) {
       return sendResponse(res, 400, false, "Invalid input", parsedData.error.issues);
@@ -99,7 +99,7 @@ const updateStatusSchema = z.object({
 
 export const toggleUserStatus = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const parsedData = updateStatusSchema.safeParse(req.body);
     if (!parsedData.success) {
       return sendResponse(res, 400, false, "Invalid input", parsedData.error.issues);
@@ -126,7 +126,7 @@ export const toggleUserStatus = async (req: Request, res: Response): Promise<any
 
 export const deleteUser = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     
     // Check if user exists
     const user = await prisma.user.findUnique({ where: { id } });
@@ -162,7 +162,7 @@ export const getWorkspaces = async (req: Request, res: Response): Promise<any> =
 
 export const deleteWorkspace = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     
     const workspace = await prisma.workspace.findUnique({ where: { id } });
     if (!workspace) return sendResponse(res, 404, false, "Workspace not found");

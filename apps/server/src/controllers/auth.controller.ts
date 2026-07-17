@@ -165,7 +165,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<any> => 
         data: {
           email,
           fullName: name || "Google User",
-          avatar: picture,
+          avatar: picture || null,
           googleId,
           password: "", // Thêm password rỗng để tránh lỗi nếu cache Prisma chưa update
         },
