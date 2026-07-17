@@ -5,17 +5,25 @@ import MainLayout from "../layouts/MainLayout";
 import NotFoundPage from "../pages/NotFoundPage";
 
 import ProtectedRoute from "../components/ProtectedRoute";
-import { authRoutes, publicRoutes } from "./routes";
+import { authRoutes, publicRoutes, adminRoutes, landingRoutes } from "./routes.tsx";
 
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {landingRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={route.element} />
+        ))}
+
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           {publicRoutes.map((route) => (
             <Route key={route.path} path={route.path} element={route.element} />
           ))}
         </Route>
+
+        {adminRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={route.element} />
+        ))}
 
         <Route element={<AuthLayout />}>
           {authRoutes.map((route) => (

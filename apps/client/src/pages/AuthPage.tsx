@@ -33,7 +33,11 @@ export default function AuthPage() {
       });
       if (res.success) {
         login(res.data.token, res.data.user);
-        navigate("/");
+        if (res.data.user.systemRole === "SYSTEM_ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message || "Đăng nhập thất bại");
@@ -54,7 +58,11 @@ export default function AuthPage() {
       });
       if (res.success) {
         login(res.data.token, res.data.user);
-        navigate("/");
+        if (res.data.user.systemRole === "SYSTEM_ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message || "Đăng ký thất bại");

@@ -10,10 +10,12 @@ import notificationRoutes from "./notification.routes.js";
 import checklistRoutes from "./checklist.routes.js";
 import attachmentRoutes from "./attachment.routes.js";
 import reactionRoutes from "./reaction.routes.js";
+import adminRoutes from "./admin.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
 router.use("/workspaces", workspaceRoutes);
 
 // Board routes

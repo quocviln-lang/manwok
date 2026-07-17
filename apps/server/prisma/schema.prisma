@@ -25,6 +25,7 @@ model User {
   systemRole SystemRole @default(SYSTEM_USER) @map("system_role")
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @updatedAt @map("updated_at")
+  isActive   Boolean    @default(true) @map("is_active")
 
   // Relations
   ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")

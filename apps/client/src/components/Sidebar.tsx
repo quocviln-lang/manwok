@@ -31,7 +31,11 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    fetchWorkspaces();
+    // We wrap in setTimeout to avoid the synchronous setState warning from react-compiler/linter
+    const timer = setTimeout(() => {
+      fetchWorkspaces();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchWorkspaces]);
 
   const isActive = (path: string) => {
@@ -47,9 +51,9 @@ export default function Sidebar() {
           {/* Main Navigation Section */}
           <nav className="px-3 space-y-1">
             <Link
-              to="/"
+              to="/dashboard"
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                isActive("/") 
+                isActive("/dashboard") 
                   ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" 
                   : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}

@@ -8,7 +8,7 @@ type BoardSettingsModalProps = {
   workspaceId: string;
   currentUserRole: string;
   boardVisibility: string;
-  workspaceSettings?: Record<string, any>;
+  workspaceSettings?: Record<string, unknown>;
   onClose: () => void;
   onUpdate: () => void;
 };

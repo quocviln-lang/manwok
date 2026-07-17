@@ -72,7 +72,7 @@ export default function BoardPage() {
   const [isMember, setIsMember] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>("MEMBER");
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [workspaceSettings, setWorkspaceSettings] = useState<Record<string, any> | null>(null);
+  const [workspaceSettings, setWorkspaceSettings] = useState<Record<string, unknown> | null>(null);
   const [filter, setFilter] = useState<FilterState>(defaultFilterState);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingList, setIsAddingList] = useState(false);
