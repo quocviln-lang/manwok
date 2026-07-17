@@ -456,7 +456,7 @@ export default function ProfilePage() {
         <CardDetailModal 
           onClose={() => setSelectedCardId(null)} 
           cardId={selectedCardId} 
-          onCardUpdated={() => {
+          onUpdate={() => {
             fetchDashboardStats(); // Refresh dashboard stats when a card is updated (e.g. marked complete)
           }}
         />
