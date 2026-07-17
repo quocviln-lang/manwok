@@ -456,7 +456,6 @@ export default function ProfilePage() {
         <CardDetailModal 
           onClose={() => setSelectedCardId(null)} 
           cardId={selectedCardId} 
-          boardId={upcomingTasks.find(t => t.id === selectedCardId)?.list?.board?.id || ""} 
           onCardUpdated={() => {
             fetchDashboardStats(); // Refresh dashboard stats when a card is updated (e.g. marked complete)
           }}
