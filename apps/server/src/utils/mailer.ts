@@ -8,6 +8,8 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // Bắt buộc dùng IPv4 để tránh lỗi ENETUNREACH trên các Server không hỗ trợ IPv6 (như Render)
+  ...({ family: 4 } as any),
 });
 
 export const sendResetPasswordEmail = async (to: string, token: string) => {
