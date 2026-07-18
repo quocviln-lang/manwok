@@ -175,10 +175,12 @@ export default function AuthPage() {
           </div>
           
           <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError("Đăng nhập Google thất bại")}
-            />
+            {!isLogin && (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Đăng nhập Google thất bại")}
+              />
+            )}
           </div>
           
           {/* Mobile Only Toggle */}
@@ -258,10 +260,12 @@ export default function AuthPage() {
           </div>
           
           <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError("Đăng nhập Google thất bại")}
-            />
+            {isLogin && (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Đăng nhập Google thất bại")}
+              />
+            )}
           </div>
           
           {/* Mobile Only Toggle */}
