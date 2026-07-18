@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Joyride, STATUS } from 'react-joyride';
 import type { EventData, Step, TooltipRenderProps } from 'react-joyride';
 import { useTour } from '../context/TourContext';
@@ -120,14 +119,9 @@ export default function OnboardingTour() {
     <Joyride
       onEvent={handleJoyrideCallback}
       continuous
-      hideCloseButton
       run={run}
-      showSkipButton
       steps={steps}
       tooltipComponent={CustomTooltip}
-      floaterProps={{
-        disableAnimation: true, // We handle animation with Tailwind
-      }}
     />
   );
 }
