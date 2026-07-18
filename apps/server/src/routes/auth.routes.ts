@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, googleLogin, getMe, updateProfile, getDashboardStats, changePassword } from "../controllers/auth.controller.js";
+import { register, login, googleLogin, getMe, updateProfile, getDashboardStats, changePassword, forgotPassword, resetPassword } from "../controllers/auth.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -11,5 +11,7 @@ router.get("/me", protect, getMe);
 router.patch("/me", protect, updateProfile);
 router.get("/dashboard", protect, getDashboardStats);
 router.post("/change-password", protect, changePassword);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 export default router;

@@ -1,9 +1,12 @@
 import HomePage from "../pages/HomePage";
 import BoardPage from "../pages/BoardPage";
 import AuthPage from "../pages/AuthPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 import WorkspaceView from "../pages/WorkspaceView";
 import ProfilePage from "../pages/ProfilePage";
 import AdminPage from "../pages/AdminPage";
+import TemplatesPage from "../pages/TemplatesPage";
 import ProtectedRoute from "../components/ProtectedRoute";
 import AdminRoute from "../components/AdminRoute";
 
@@ -60,6 +63,14 @@ export const publicRoutes = [
       </ProtectedRoute>
     ),
   },
+  {
+    path: "/templates",
+    element: (
+      <ProtectedRoute>
+        <TemplatesPage />
+      </ProtectedRoute>
+    ),
+  },
 ];
 
 export const authRoutes = [
@@ -74,5 +85,13 @@ export const authRoutes = [
   {
     path: "/register",
     element: <AuthPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
   },
 ];

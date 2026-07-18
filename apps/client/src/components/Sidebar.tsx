@@ -8,8 +8,12 @@ type Workspace = {
   id: string;
   name: string;
 };
+type SidebarProps = {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+};
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -44,14 +48,31 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+          onClick={onCloseMobile}
+        />
+      )}
+
       <aside 
-        className={`relative h-full bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 flex flex-col ${isCollapsed ? 'w-16' : 'w-64'}`}
+        className={`
+          tour-sidebar flex flex-col transition-all duration-300
+          /* Desktop styles */
+          lg:relative lg:translate-x-0 lg:h-full lg:border-r lg:border-gray-200 lg:dark:border-gray-800
+          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
+          /* Mobile styles (Drawer) */
+          fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-950 shadow-2xl lg:shadow-none
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
       >
         <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-6">
           {/* Main Navigation Section */}
           <nav className="px-3 space-y-1">
             <Link
               to="/dashboard"
+              onClick={onCloseMobile}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
                 isActive("/dashboard") 
                   ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" 
@@ -63,14 +84,19 @@ export default function Sidebar() {
               {!isCollapsed && <span>Trang chủ</span>}
             </Link>
             
-            <button
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group cursor-not-allowed opacity-80"
-              title="Bảng mẫu (Sắp ra mắt)"
-              disabled
+            <Link
+              to="/templates"
+              onClick={onCloseMobile}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
+                isActive("/templates") 
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" 
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+              title="Bảng mẫu"
             >
-              <LayoutTemplate size={18} />
-              {!isCollapsed && <span>Bảng mẫu <span className="ml-2 text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-md text-gray-600 dark:text-gray-300 font-medium">SOON</span></span>}
-            </button>
+              <LayoutTemplate size={18} className={isActive("/templates") ? "text-blue-600 dark:text-blue-400" : "text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300"} />
+              {!isCollapsed && <span>Bảng mẫu</span>}
+            </Link>
           </nav>
 
           {/* Divider */}
@@ -117,6 +143,7 @@ export default function Sidebar() {
                     <Link
                       key={ws.id}
                       to={`/w/${ws.id}`}
+                      onClick={onCloseMobile}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
                         isActive(`/w/${ws.id}`)
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium"
@@ -150,8 +177,8 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Footer Toggle */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-center items-center bg-gray-50/50 dark:bg-gray-900/50">
+        {/* Footer Toggle (Desktop Only) */}
+        <div className="hidden lg:flex p-4 border-t border-gray-200 dark:border-gray-800 justify-center items-center bg-gray-50/50 dark:bg-gray-900/50">
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="w-full flex justify-center items-center p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"

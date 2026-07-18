@@ -360,11 +360,11 @@ export default function CardDetailModal({ cardId, onClose, onUpdate, currentUser
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-0 sm:p-8"
       onClick={onClose}
     >
       <div 
-        className="relative bg-gray-50 dark:bg-gray-900 w-full max-w-5xl min-h-[400px] rounded-xl shadow-2xl my-8 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300 ease-out flex flex-col"
+        className="relative bg-gray-50 dark:bg-gray-900 w-full max-w-5xl min-h-screen sm:min-h-[400px] rounded-none sm:rounded-xl shadow-2xl my-0 sm:my-8 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300 ease-out flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
 

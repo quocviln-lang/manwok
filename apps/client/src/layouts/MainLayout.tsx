@@ -6,6 +6,9 @@ import { useAuth } from "../context/AuthContext";
 
 import Sidebar from "../components/Sidebar";
 import NotificationMenu from "../components/NotificationMenu";
+import OnboardingTour from "../components/OnboardingTour";
+import UserGuideModal from "../components/UserGuideModal";
+import { BookOpen, Menu } from "lucide-react";
 
 // ProfileModal removed, using ProfilePage instead
 
@@ -15,6 +18,8 @@ function MainLayout() {
   const navigate = useNavigate();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,11 +39,27 @@ function MainLayout() {
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 flex flex-col overflow-hidden">
-      <header className="h-14 px-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between shrink-0 z-50">
-        <Link to="/dashboard" className="font-bold text-xl text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity">
-          Manwok
-        </Link>
-        <div className="flex items-center gap-4">
+      <header className="h-14 px-3 sm:px-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between shrink-0 z-50">
+        <div className="flex items-center gap-2">
+          <button 
+            className="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            onClick={() => setIsMobileSidebarOpen(true)}
+          >
+            <Menu size={24} />
+          </button>
+          <Link to="/dashboard" className="font-bold text-xl text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity">
+            Manwok
+          </Link>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={() => setIsUserGuideOpen(true)}
+            className="tour-help-button p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 transition-colors tooltip-trigger"
+            title="Sổ tay Hướng dẫn"
+          >
+            <BookOpen size={20} />
+          </button>
+          
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
@@ -51,7 +72,7 @@ function MainLayout() {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer shadow-sm hover:ring-2 hover:ring-blue-300 transition-all"
+              className="tour-profile w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer shadow-sm hover:ring-2 hover:ring-blue-300 transition-all"
             >
               {user?.avatar ? (
                 <img src={user.avatar} alt="avatar" className="w-full h-full rounded-full object-cover" />
@@ -101,13 +122,14 @@ function MainLayout() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
+        <Sidebar mobileOpen={isMobileSidebarOpen} onCloseMobile={() => setIsMobileSidebarOpen(false)} />
         <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
           <Outlet />
         </main>
       </div>
 
-
+      <OnboardingTour />
+      <UserGuideModal isOpen={isUserGuideOpen} onClose={() => setIsUserGuideOpen(false)} />
     </div>
   );
 }

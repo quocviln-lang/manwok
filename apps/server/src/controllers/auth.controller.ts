@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import crypto from "crypto";
 import prisma from "../prisma/prisma.js";
 import { generateToken } from "../utils/jwt.js";
 import { sendResponse } from "../utils/response.js";
+import { sendResetPasswordEmail } from "../utils/mailer.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -50,6 +52,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
         email: user.email,
         fullName: user.fullName,
         systemRole: user.systemRole,
+        hasSeenTutorial: user.hasSeenTutorial,
       },
     });
   } catch (error: any) {
@@ -121,6 +124,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<any> => {
         avatar: true,
         systemRole: true,
         isActive: true,
+        hasSeenTutorial: true,
         createdAt: true,
       },
     });
@@ -204,6 +208,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<any> => 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
   avatar: z.string().url().optional(),
+  hasSeenTutorial: z.boolean().optional(),
 });
 
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -217,9 +222,10 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<an
       return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
     }
 
-    const dataToUpdate: { fullName?: string; avatar?: string } = {};
+    const dataToUpdate: { fullName?: string; avatar?: string; hasSeenTutorial?: boolean } = {};
     if (parsedData.data.fullName !== undefined) dataToUpdate.fullName = parsedData.data.fullName;
     if (parsedData.data.avatar !== undefined) dataToUpdate.avatar = parsedData.data.avatar;
+    if (parsedData.data.hasSeenTutorial !== undefined) dataToUpdate.hasSeenTutorial = parsedData.data.hasSeenTutorial;
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
@@ -230,6 +236,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<an
         fullName: true,
         avatar: true,
         systemRole: true,
+        hasSeenTutorial: true,
       },
     });
 
@@ -355,3 +362,79 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<a
     return sendResponse(res, 500, false, error.message || "Server Error");
   }
 };
+
+export const forgotPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email } = req.body;
+    if (!email) return sendResponse(res, 400, false, "Email is required");
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Return success even if user not found to prevent email enumeration
+      return sendResponse(res, 200, true, "Nếu email hợp lệ, hướng dẫn khôi phục sẽ được gửi.");
+    }
+
+    // Generate token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires,
+      },
+    });
+
+    // Send email
+    const emailSent = await sendResetPasswordEmail(user.email, resetToken);
+    if (!emailSent) {
+      return sendResponse(res, 500, false, "Có lỗi xảy ra khi gửi email, vui lòng thử lại sau.");
+    }
+
+    return sendResponse(res, 200, true, "Nếu email hợp lệ, hướng dẫn khôi phục sẽ được gửi.");
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return sendResponse(res, 400, false, "Thiếu thông tin token hoặc mật khẩu mới");
+    }
+
+    if (newPassword.length < 6) {
+      return sendResponse(res, 400, false, "Mật khẩu phải có ít nhất 6 ký tự");
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return sendResponse(res, 400, false, "Token không hợp lệ hoặc đã hết hạn");
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return sendResponse(res, 200, true, "Đổi mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.");
+  } catch (error: any) {
+    return sendResponse(res, 500, false, error.message || "Server Error");
+  }
+};
+

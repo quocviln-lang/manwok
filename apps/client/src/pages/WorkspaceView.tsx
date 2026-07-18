@@ -250,7 +250,7 @@ export default function WorkspaceView() {
   return (
     <div className="max-w-7xl mx-auto pb-12 pt-12">
       {/* Workspace Info Area */}
-      <div className="px-8 relative mb-10 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
+      <div className="px-4 md:px-8 relative mb-10 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
         <div className="flex items-end gap-5">
           <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white dark:bg-gray-800 rounded-2xl shadow-xl flex items-center justify-center border-4 border-gray-50 dark:border-gray-900 shrink-0">
             <span className="text-4xl sm:text-5xl font-bold bg-clip-text text-transparent bg-linear-to-br from-blue-600 to-indigo-600">
@@ -291,7 +291,7 @@ export default function WorkspaceView() {
         </div>
       </div>
 
-      <div className="px-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="px-4 md:px-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
           {/* Toolbar: Search */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">

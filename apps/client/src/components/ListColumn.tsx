@@ -98,7 +98,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`shrink-0 w-72 max-h-full flex flex-col rounded-xl shadow-sm transition-all ${currentBgClass} ${snapshot.isDragging ? "shadow-xl ring-2 ring-blue-500/50 scale-[1.02] z-50" : ""
+          className={`h-full max-h-full flex flex-col rounded-xl shadow-sm transition-all ${currentBgClass} ${snapshot.isDragging ? "shadow-xl ring-2 ring-blue-500/50 scale-[1.02] z-50" : ""
             }`}
         >
           {/* List Header */}
@@ -203,7 +203,7 @@ export default function ListColumn({ list, index, onRefresh, onCardClick, curren
               {!isAddingCard ? (
                 <button
                   onClick={() => setIsAddingCard(true)}
-                  className="w-full flex items-center gap-2 p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium text-sm"
+                  className={`w-full flex items-center gap-2 p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium text-sm ${index === 0 ? 'tour-add-card' : ''}`}
                 >
                   <Plus size={18} /> Thêm thẻ
                 </button>

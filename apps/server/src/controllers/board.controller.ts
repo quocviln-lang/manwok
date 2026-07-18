@@ -10,6 +10,7 @@ const createBoardSchema = z.object({
   color: z.string().optional(),
   cover: z.string().optional(),
   visibility: z.enum(["PRIVATE", "WORKSPACE", "PUBLIC"]).optional(),
+  template: z.string().optional(),
 });
 
 export const createBoard = async (req: AuthRequest, res: Response): Promise<any> => {
@@ -43,7 +44,7 @@ export const createBoard = async (req: AuthRequest, res: Response): Promise<any>
       return sendResponse(res, 400, false, "Invalid input data", parsedData.error.issues);
     }
 
-    const { title, description, color, cover, visibility } = parsedData.data;
+    const { title, description, color, cover, visibility, template } = parsedData.data;
 
     const board = await prisma.board.create({
       data: {
@@ -56,6 +57,36 @@ export const createBoard = async (req: AuthRequest, res: Response): Promise<any>
         creatorId: userId,
       },
     });
+
+    if (template === "kanban-basic") {
+      await prisma.list.createMany({
+        data: [
+          { title: "Cần làm", position: 65535, boardId: board.id },
+          { title: "Đang làm", position: 131070, boardId: board.id },
+          { title: "Đã xong", position: 196605, boardId: board.id },
+        ]
+      });
+    } else if (template === "agile") {
+      await prisma.list.createMany({
+        data: [
+          { title: "Backlog (Tồn đọng)", position: 65535, boardId: board.id },
+          { title: "Sprint hiện tại", position: 131070, boardId: board.id },
+          { title: "Đang làm", position: 196605, boardId: board.id },
+          { title: "Chờ review", position: 262140, boardId: board.id },
+          { title: "Hoàn thành", position: 327675, boardId: board.id },
+        ]
+      });
+    } else if (template === "crm") {
+      await prisma.list.createMany({
+        data: [
+          { title: "Khách hàng mới", position: 65535, boardId: board.id },
+          { title: "Đang liên hệ", position: 131070, boardId: board.id },
+          { title: "Thương lượng", position: 196605, boardId: board.id },
+          { title: "Đã chốt (Thành công)", position: 262140, boardId: board.id },
+          { title: "Thất bại", position: 327675, boardId: board.id },
+        ]
+      });
+    }
 
     await prisma.workspaceActivity.create({
       data: {

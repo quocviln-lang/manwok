@@ -7,6 +7,7 @@ type User = {
   fullName: string;
   avatar: string | null;
   systemRole: string;
+  hasSeenTutorial?: boolean;
 };
 
 type AuthContextType = {

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { apiCall } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { Mail, Lock, User } from "lucide-react";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 export default function AuthPage() {
@@ -99,10 +100,10 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl h-[550px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl relative overflow-hidden flex transition-colors duration-300">
+    <div className="w-full max-w-4xl min-h-[500px] h-auto md:h-[550px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row transition-colors duration-300">
       
       {/* ================= REGISTER FORM (Appears on Right) ================= */}
-      <div className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center px-12 transition-all duration-700 ease-in-out ${isLogin ? 'opacity-0 z-10 translate-x-0' : 'opacity-100 z-50 translate-x-full'}`}>
+      <div className={`md:absolute relative top-0 left-0 w-full md:w-1/2 h-auto md:h-full flex flex-col justify-center px-6 md:px-12 py-8 md:py-0 transition-all duration-700 ease-in-out ${isLogin ? 'opacity-0 z-10 translate-x-0 hidden md:flex' : 'opacity-100 z-50 translate-x-0 md:translate-x-full flex'}`}>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">Tạo Tài Khoản</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm">Sử dụng email của bạn để đăng ký</p>
@@ -115,35 +116,54 @@ export default function AuthPage() {
             </div>
           )}
           
-          <input
-            type="text"
-            value={regFullName}
-            onChange={(e) => setRegFullName(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="Họ và tên"
-          />
-          <input
-            type="email"
-            value={regEmail}
-            onChange={(e) => setRegEmail(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="Email"
-          />
-          <input
-            type="password"
-            value={regPassword}
-            onChange={(e) => setRegPassword(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="Mật khẩu"
-          />
+          <div className="space-y-4 relative">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <User size={18} />
+              </div>
+              <input
+                type="text"
+                value={regFullName}
+                onChange={(e) => setRegFullName(e.target.value)}
+                required
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all focus:bg-white dark:focus:bg-gray-700 shadow-xs"
+                placeholder="Họ và tên"
+              />
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <Mail size={18} />
+              </div>
+              <input
+                type="email"
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value)}
+                required
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all focus:bg-white dark:focus:bg-gray-700 shadow-xs"
+                placeholder="Email"
+              />
+            </div>
+
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <Lock size={18} />
+              </div>
+              <input
+                type="password"
+                value={regPassword}
+                onChange={(e) => setRegPassword(e.target.value)}
+                required
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all focus:bg-white dark:focus:bg-gray-700 shadow-xs"
+                placeholder="Mật khẩu"
+              />
+            </div>
+          </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex justify-center items-center mt-4"
+            className="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.25)] hover:shadow-[0_8px_25px_rgba(37,99,235,0.4)] hover:-translate-y-0.5 transition-all flex justify-center items-center mt-6"
           >
             {isLoading ? "Đang xử lý..." : "ĐĂNG KÝ"}
           </button>
@@ -160,12 +180,23 @@ export default function AuthPage() {
               onError={() => setError("Đăng nhập Google thất bại")}
             />
           </div>
+          
+          {/* Mobile Only Toggle */}
+          <div className="mt-6 text-center md:hidden">
+            <button
+              type="button"
+              onClick={() => { setError(""); setIsLogin(true); }}
+              className="text-blue-600 dark:text-blue-400 font-medium text-sm hover:underline"
+            >
+              Đã có tài khoản? Đăng nhập ngay
+            </button>
+          </div>
         </form>
       </div>
 
 
       {/* ================= LOGIN FORM (Appears on Left) ================= */}
-      <div className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center px-12 transition-all duration-700 ease-in-out ${isLogin ? 'opacity-100 z-50 translate-x-0' : 'opacity-0 z-10 translate-x-full'}`}>
+      <div className={`md:absolute relative top-0 left-0 w-full md:w-1/2 h-auto md:h-full flex flex-col justify-center px-6 md:px-12 py-8 md:py-0 transition-all duration-700 ease-in-out ${isLogin ? 'opacity-100 z-50 translate-x-0 flex' : 'opacity-0 z-10 translate-x-0 md:-translate-x-full hidden md:flex'}`}>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">Đăng Nhập</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm">Sử dụng tài khoản Manwok của bạn</p>
@@ -178,31 +209,44 @@ export default function AuthPage() {
             </div>
           )}
           
-          <input
-            type="email"
-            value={loginEmail}
-            onChange={(e) => setLoginEmail(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="Email"
-          />
-          <input
-            type="password"
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="Mật khẩu"
-          />
+          <div className="space-y-4 relative">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <Mail size={18} />
+              </div>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all focus:bg-white dark:focus:bg-gray-700 shadow-xs"
+                placeholder="Email"
+              />
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <Lock size={18} />
+              </div>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all focus:bg-white dark:focus:bg-gray-700 shadow-xs"
+                placeholder="Mật khẩu"
+              />
+            </div>
+          </div>
 
           <div className="text-right">
-            <a href="#" className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 transition-colors">Quên mật khẩu?</a>
+            <Link to="/forgot-password" className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 transition-colors">Quên mật khẩu?</Link>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex justify-center items-center mt-4"
+            className="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.25)] hover:shadow-[0_8px_25px_rgba(37,99,235,0.4)] hover:-translate-y-0.5 transition-all flex justify-center items-center mt-6"
           >
             {isLoading ? "Đang xử lý..." : "ĐĂNG NHẬP"}
           </button>
@@ -219,20 +263,30 @@ export default function AuthPage() {
               onError={() => setError("Đăng nhập Google thất bại")}
             />
           </div>
+          
+          {/* Mobile Only Toggle */}
+          <div className="mt-6 text-center md:hidden">
+            <button
+              type="button"
+              onClick={() => { setError(""); setIsLogin(false); }}
+              className="text-blue-600 dark:text-blue-400 font-medium text-sm hover:underline"
+            >
+              Chưa có tài khoản? Đăng ký ngay
+            </button>
+          </div>
         </form>
       </div>
 
-
       {/* ================= OVERLAY (Sliding Image Panel) ================= */}
-      <div className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-700 ease-in-out z-100 ${isLogin ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-700 ease-in-out z-100 hidden md:block ${isLogin ? 'translate-x-0' : '-translate-x-full'}`}>
         
         {/* Background Image inside Overlay */}
         <div 
           className={`relative -left-full h-full w-[200%] transform transition-transform duration-700 ease-in-out bg-cover bg-center text-white ${isLogin ? 'translate-x-0' : 'translate-x-1/2'}`}
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop')" }}
+          style={{ backgroundImage: "url('/images/auth-bg-2.jpg')" }}
         >
           {/* Overlay Dark Tint */}
-          <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-blue-900/40" />
 
           {/* Left/Right Text Panels inside Background */}
           <div className="absolute inset-0 flex">

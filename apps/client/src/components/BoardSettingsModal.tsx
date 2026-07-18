@@ -206,11 +206,11 @@ export default function BoardSettingsModal({ boardId, workspaceId, currentUserRo
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-0 sm:p-8"
       onClick={onClose}
     >
       <div 
-        className="relative bg-gray-50 dark:bg-gray-900 w-full max-w-2xl min-h-[500px] rounded-xl shadow-2xl my-8 flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        className="relative bg-gray-50 dark:bg-gray-900 w-full max-w-2xl min-h-screen sm:min-h-[500px] rounded-none sm:rounded-xl shadow-2xl my-0 sm:my-8 flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

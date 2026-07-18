@@ -36,7 +36,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    fetchWorkspaces();
+    const timer = setTimeout(() => {
+      fetchWorkspaces();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchWorkspaces]);
 
   const getGreeting = () => {
@@ -49,7 +52,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       {/* Welcome Banner */}
-      <div className="max-w-7xl mx-auto px-8 pt-12 pb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 font-medium text-sm">
             <span>{new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -64,7 +67,7 @@ export default function HomePage() {
         
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+          className="tour-create-board w-full md:w-auto shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 font-medium shadow-sm hover:shadow-md"
         >
           <Plus size={20} /> 
           Tạo Workspace mới
@@ -72,7 +75,7 @@ export default function HomePage() {
       </div>
 
       {/* Workspaces Section */}
-      <div className="max-w-7xl mx-auto px-8 py-12">
+      <div className="tour-recent-boards max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
             <LayoutDashboard className="text-blue-500" />

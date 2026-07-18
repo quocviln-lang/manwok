@@ -6,15 +6,18 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import App from './App.tsx'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'missing-client-id';
+import { TourProvider } from './context/TourContext'
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'missing-client-id';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <ThemeProvider defaultTheme="light" storageKey="manwok-theme">
         <AuthProvider>
-          <App />
+          <TourProvider>
+            <App />
+          </TourProvider>
         </AuthProvider>
       </ThemeProvider>
     </GoogleOAuthProvider>

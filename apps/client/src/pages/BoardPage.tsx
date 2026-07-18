@@ -349,8 +349,8 @@ export default function BoardPage() {
       <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-40 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="tour-board-header relative z-40 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0 overflow-x-auto whitespace-nowrap scrollbar-hide gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link 
             to={`/w/${board.workspaceId}`} 
             className="flex items-center gap-1 p-1.5 px-3 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
@@ -390,7 +390,7 @@ export default function BoardPage() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <input 
             type="file" 
             ref={fileInputRef}
@@ -456,25 +456,26 @@ export default function BoardPage() {
       {/* Canvas or Charts */}
       {viewMode === "board" ? (
         <div className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="h-full flex items-start p-4 gap-4">
+          <div className="h-full flex items-start p-4 gap-4 overflow-x-auto">
             <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="board" type="list" direction="horizontal">
               {(provided: any) => (
                 <div 
-                  className="flex items-start gap-4 h-full"
+                  className="flex items-start gap-4 h-full min-w-max pb-4"
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                 >
                   {filteredBoard?.lists.map((list, index) => (
-                    <ListColumn 
-                      key={list.id} 
-                      list={list} 
-                      index={index} 
-                      onRefresh={fetchBoard}
-                      onCardClick={(cardId) => setSelectedCardId(cardId)}
-                      currentUserRole={currentUserRole}
-                      isDragDisabled={hasActiveFilters}
-                    />
+                    <div key={list.id} className="w-[85vw] sm:w-72 shrink-0 h-full">
+                      <ListColumn 
+                        list={list} 
+                        index={index} 
+                        onRefresh={fetchBoard}
+                        onCardClick={(cardId) => setSelectedCardId(cardId)}
+                        currentUserRole={currentUserRole}
+                        isDragDisabled={hasActiveFilters}
+                      />
+                    </div>
                   ))}
                   {provided.placeholder}
                 </div>

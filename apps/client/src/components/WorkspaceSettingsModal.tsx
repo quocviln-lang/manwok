@@ -210,26 +210,38 @@ export default function WorkspaceSettingsModal({
   const canDeleteBoard = isAdminOrOwner || workspaceSettings?.boardDeletionRestriction === "ANY_MEMBER";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
-        
+    <div 
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-white dark:bg-gray-900 w-full max-w-4xl min-h-screen sm:min-h-[500px] rounded-none sm:rounded-2xl shadow-2xl my-0 sm:my-8 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Cài đặt Không gian làm việc</h2>
-          <button
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              Cài đặt không gian làm việc
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Quản lý quyền, thành viên và thông tin chung
+            </p>
+          </div>
+          <button 
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors bg-white dark:bg-gray-800 shadow-sm"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
           {/* Sidebar Tabs */}
-          <div className="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 p-4 flex flex-col gap-2 overflow-y-auto">
+          <div className="w-full sm:w-64 bg-gray-50/50 dark:bg-gray-900/50 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-800 p-4 flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto whitespace-nowrap scrollbar-hide shrink-0">
             <button
               onClick={() => setActiveTab("general")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              className={`shrink-0 sm:w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 activeTab === "general" 
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" 
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
@@ -239,7 +251,7 @@ export default function WorkspaceSettingsModal({
             </button>
             <button
               onClick={() => setActiveTab("permissions")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              className={`shrink-0 sm:w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 activeTab === "permissions" 
                   ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" 
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
@@ -252,7 +264,7 @@ export default function WorkspaceSettingsModal({
                 setActiveTab("members");
                 fetchMembers();
               }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              className={`shrink-0 sm:w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 activeTab === "members" 
                   ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
@@ -262,7 +274,7 @@ export default function WorkspaceSettingsModal({
             </button>
             <button
               onClick={() => setActiveTab("archived")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              className={`shrink-0 sm:w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 activeTab === "archived" 
                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
@@ -273,7 +285,7 @@ export default function WorkspaceSettingsModal({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 p-8 overflow-y-auto bg-white dark:bg-gray-900">
+          <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-white dark:bg-gray-900">
             
             {/* General Tab */}
             {activeTab === "general" && (
