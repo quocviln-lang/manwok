@@ -349,7 +349,7 @@ export default function BoardPage() {
       <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
       {/* Header */}
-      <header className="tour-board-header relative z-40 h-14 px-4 flex items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0 overflow-x-auto whitespace-nowrap scrollbar-hide gap-4">
+      <header className="tour-board-header relative z-40 min-h-[3.5rem] h-auto py-2 px-4 flex flex-wrap items-center justify-between bg-black/30 backdrop-blur-sm text-white shrink-0 gap-4">
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link 
             to={`/w/${board.workspaceId}`} 

@@ -93,7 +93,7 @@ export default function BoardFilter({ workspaceId, currentUserId, filter, setFil
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 text-sm overflow-hidden">
+        <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 text-sm overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-center flex-1">Lọc thẻ</h3>
             <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded-md">
