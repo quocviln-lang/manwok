@@ -5,7 +5,7 @@ Manwok is a modern, real-time workspace and project management application inspi
 ## 🌟 Key Features
 
 - **Real-time Collaboration**: Instant updates across all clients using Socket.io.
-- **Drag and Drop**: Seamlessly move cards and lists with `react-beautiful-dnd`.
+- **Drag and Drop**: Seamlessly move cards and lists with `@hello-pangea/dnd`.
 - **Workspaces & Boards**: Organize projects into dedicated workspaces and boards.
 - **Card Details**: Add descriptions, checklists, due dates, comments, and attachments.
 - **Authentication**: Secure JWT-based authentication and Google OAuth login.
@@ -14,11 +14,12 @@ Manwok is a modern, real-time workspace and project management application inspi
 ## 🛠️ Tech Stack
 
 **Frontend (Client)**
-- React 18, Vite, TypeScript
+- React 19, Vite, TypeScript
 - Tailwind CSS & Lucide Icons
 - Socket.io-client
 - React Router DOM
-- Zustand (State Management)
+- React Context API & Hooks (State Management)
+- Recharts (Data Visualization)
 
 **Backend (Server)**
 - Node.js, Express, TypeScript
@@ -57,6 +58,5 @@ Manwok is a modern, real-time workspace and project management application inspi
    ```bash
    cd apps/client
    npm install
-   # Create a .env file with VITE_API_URL, VITE_SOCKET_URL, VITE_GOOGLE_CLIENT_ID
    npm run dev
    ```
